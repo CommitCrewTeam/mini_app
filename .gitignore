@@ -1,0 +1,14 @@
+.gradle/
+build/
+out/
+
+**/build/
+
+# IntelliJ IDEA project files
+.idea/
+**/.idea/
+
+*.class
+*.log
+
+.env

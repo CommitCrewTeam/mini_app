@@ -1,0 +1,25 @@
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'mini_ecommerce'
+
+include 'common'
+include 'product_service'
+include 'inventory_service'
+include 'order_service'
+include 'payment_service'
+include 'notification_service'
+include 'analytics_service'
+include 'audit_service'
+include 'seed_service'

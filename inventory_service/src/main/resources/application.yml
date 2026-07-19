@@ -1,0 +1,15 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: inventory_service
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/inventory_service
+    username: ecommerce_user
+    password: ecommerce_password
+  liquibase:
+    url: jdbc:postgresql://localhost:5432/inventory_service
+    user: ecommerce_user
+    password: ecommerce_password
+    change-log: classpath:db/changelog/db.changelog-master.yaml
