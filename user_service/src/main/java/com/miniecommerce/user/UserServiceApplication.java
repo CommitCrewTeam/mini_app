@@ -1,12 +1,12 @@
-package com.miniecommerce.audit;
+package com.miniecommerce.user;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class AuditServiceApplication {
+public class UserServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(AuditServiceApplication.class, args);
+        SpringApplication.run(UserServiceApplication.class, args);
     }
 }

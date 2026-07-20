@@ -37,7 +37,7 @@ services:
         psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'payment_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user payment_service
         psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'notification_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user notification_service
         psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'analytics_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user analytics_service
-        psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'audit_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user audit_service
+        psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'user_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user user_service
     networks:
       - mini_ecommerce_network
 

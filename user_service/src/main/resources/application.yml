@@ -3,9 +3,9 @@ server:
 
 spring:
   application:
-    name: audit_service
+    name: user_service
   datasource:
-    url: jdbc:postgresql://localhost:5432/audit_service
+    url: jdbc:postgresql://localhost:5432/user_service
     username: ecommerce_user
     password: ecommerce_password
   jpa:

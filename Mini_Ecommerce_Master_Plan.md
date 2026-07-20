@@ -6,7 +6,7 @@
 ## Current Scope
 
 - Focus on the core ecommerce flow: product browsing, inventory reservation,
-  order lifecycle, fake payment, notification, analytics and audit.
+  order lifecycle, fake payment, notification, analytics and user profile data.
 - Use a Gradle mono repo: one repository contains all service projects and
   shared modules.
 - Service schemas are owned by their own service. Seed data is handled by a
@@ -46,7 +46,7 @@
 | Payment | Spring Boot WebMVC | Fake payment flow, not the main bottleneck for now |
 | Notification | Spring Boot WebMVC | Async email simulation via Kafka |
 | Analytics | Spring Boot WebMVC | Async event consumer for business metrics/read models |
-| Audit | Spring Boot WebMVC | Async event persistence for trace/debug/history |
+| User | Spring Boot WebMVC | User/customer profile data; no authentication flow for now |
 | Seed | Spring Boot non-web runner | Connects to service databases and inserts seed data |
 
 Note: Inventory Service should avoid blocking calls. Prefer R2DBC for PostgreSQL
@@ -65,7 +65,7 @@ blocking work should not be placed directly on the Netty event loop.
 | Payment | Fake payment processing |
 | Notification | Email simulation |
 | Analytics | Build metrics/read models from business events |
-| Audit | Persist important business events for trace/debug/history |
+| User | User/customer profile data owned by the user service |
 | Seed | Run seed data scripts against service databases |
 
 Each service owns its own database.
@@ -86,7 +86,7 @@ mini_app/
   payment_service/
   notification_service/
   analytics_service/
-  audit_service/
+  user_service/
   seed_service/
 ```
 
@@ -110,14 +110,14 @@ Rules:
 
 | Topic | Producer | Consumer |
 | --- | --- | --- |
-| order.created | Order | Inventory, Analytics, Audit |
-| inventory.reserved | Inventory | Payment, Audit |
-| inventory.failed | Inventory | Order, Analytics, Audit |
-| payment.completed | Payment | Order, Analytics, Audit |
-| payment.failed | Payment | Order, Inventory, Analytics, Audit |
-| inventory.released | Inventory | Audit |
-| order.paid | Order | Notification, Analytics, Audit |
-| order.cancelled | Order | Notification, Analytics, Audit |
+| order.created | Order | Inventory, Analytics |
+| inventory.reserved | Inventory | Payment |
+| inventory.failed | Inventory | Order, Analytics |
+| payment.completed | Payment | Order, Analytics |
+| payment.failed | Payment | Order, Inventory, Analytics |
+| inventory.released | Inventory | None for now |
+| order.paid | Order | Notification, Analytics |
+| order.cancelled | Order | Notification, Analytics |
 
 ---
 
@@ -141,22 +141,21 @@ should still work because Kafka keeps the events for later consumption.
 
 ---
 
-# Audit Service
+# User Service
 
-Audit Service stores important business events for traceability. It is used when
-debugging, replaying a business flow, or checking what happened to an order.
+User Service owns user/customer profile data. Authentication and authorization
+remain outside the current scope, so this service should not implement
+register/login, JWT or role-based authorization yet.
 
 Examples:
 
-- Store event id, event type, aggregate id, payload, timestamp and source service
-- Trace full order journey: `order.created` -> `inventory.reserved` ->
-  `payment.completed` -> `order.paid`
-- Investigate failure journey: `order.created` -> `inventory.failed` ->
-  `order.cancelled`
-- Support idempotency/debug checks when duplicate events appear
+- Store user id, display name, email/contact metadata, status and timestamps
+- Provide user lookup data for order/customer-facing flows
+- Keep user-owned data in `user_service` instead of mixing it into order/payment
+  services
 
-Audit keeps raw event history. Analytics keeps aggregated/reporting data. Do not
-mix these two responsibilities.
+Analytics keeps aggregated/reporting data. User Service keeps user/customer
+profile data. Do not mix these two responsibilities.
 
 ---
 
@@ -199,7 +198,7 @@ mix these two responsibilities.
 9. Order Service updates order status to `PAID`.
 10. Order Service publishes `order.paid`.
 11. Notification Service sends simulated email.
-12. Analytics and Audit consume related events asynchronously.
+12. Analytics consumes related events asynchronously.
 
 ---
 
@@ -279,7 +278,7 @@ docs/
   06-payment_service.md
   07-notification_service.md
   08-analytics_service.md
-  09-audit_service.md
+  09-user_service.md
   10-kafka.md
   11-redis.md
   12-deployment.md
@@ -348,7 +347,7 @@ docs/
 ## Milestone 11
 
 - Analytics
-- Audit
+- User
 
 ## Milestone 12
 
