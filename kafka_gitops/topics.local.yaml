@@ -1,0 +1,13 @@
+cluster: local
+bootstrapServer: kafka:29092
+
+defaults:
+  partitions: 1
+  replicationFactor: 1
+  config:
+    cleanup.policy: delete
+    retention.ms: 604800000
+    min.insync.replicas: 1
+
+topics:
+  - name: order.placed
