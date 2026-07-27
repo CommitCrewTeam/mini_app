@@ -3,6 +3,10 @@ spring:
     name: seed_service
   main:
     web-application-type: none
+  datasource:
+    url: jdbc:postgresql://localhost:5432/seed_service
+    username: ecommerce_user
+    password: ecommerce_password
 
 seed:
   targets:
