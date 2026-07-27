@@ -4,6 +4,13 @@ server:
 spring:
   application:
     name: notification_service
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP_ID:notification_service}
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   datasource:
     url: jdbc:postgresql://localhost:5432/notification_service
     username: ecommerce_user
@@ -14,3 +21,8 @@ spring:
     open-in-view: false
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+
+app:
+  kafka:
+    topics:
+      order-placed: ${KAFKA_TOPIC_ORDER_PLACED:order.placed}
