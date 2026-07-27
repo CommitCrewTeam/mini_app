@@ -11,6 +11,8 @@ services:
       PGTZ: UTC
     ports:
       - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ecommerce_user -d postgres"]
       interval: 10s
@@ -38,6 +40,7 @@ services:
         psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'notification_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user notification_service
         psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'analytics_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user analytics_service
         psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'user_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user user_service
+        psql -h postgres -U ecommerce_user -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'seed_service'" | grep -q 1 || createdb -h postgres -U ecommerce_user seed_service
     networks:
       - mini_ecommerce_network
 
@@ -95,3 +98,7 @@ services:
 networks:
   mini_ecommerce_network:
     name: mini_ecommerce_network
+
+volumes:
+  postgres_data:
+    name: mini_ecommerce_postgres_data
