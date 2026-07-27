@@ -1,4 +1,4 @@
-package com.miniecommerce.order.app.port.in;
+package com.miniecommerce.order.app.port.inbound;
 
 public interface CreateOrderUseCase {
 
