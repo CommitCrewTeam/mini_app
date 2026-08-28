@@ -1,7 +1,7 @@
 package com.miniecommerce.inventory.adapter.outbound.persistence.mapper;
 
 import com.miniecommerce.inventory.domain.Phone;
-import com.miniecommerce.inventory.domain.PhoneEntity;
+import com.miniecommerce.inventory.adapter.outbound.persistence.PhoneEntity;
 import io.r2dbc.postgresql.codec.Json;
 import org.mapstruct.Mapper;
 

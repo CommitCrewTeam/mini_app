@@ -1,6 +1,5 @@
 package com.miniecommerce.inventory.adapter.outbound.persistence;
 
-import com.miniecommerce.inventory.domain.PhoneEntity;
 import org.springframework.data.r2dbc.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.data.repository.reactive.ReactiveCrudRepository;

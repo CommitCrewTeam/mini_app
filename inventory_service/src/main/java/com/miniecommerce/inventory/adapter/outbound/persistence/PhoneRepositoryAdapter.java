@@ -3,7 +3,6 @@ package com.miniecommerce.inventory.adapter.outbound.persistence;
 import com.miniecommerce.inventory.adapter.outbound.persistence.mapper.PhonePersistenceMapper;
 import com.miniecommerce.inventory.app.port.outbound.PhoneRepository;
 import com.miniecommerce.inventory.domain.Phone;
-import com.miniecommerce.inventory.domain.PhoneEntity;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
