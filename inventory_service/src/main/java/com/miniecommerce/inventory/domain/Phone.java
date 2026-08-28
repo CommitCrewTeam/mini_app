@@ -1,5 +1,10 @@
 package com.miniecommerce.inventory.domain;
 
+import com.miniecommerce.common.exception.AppException;
+import org.springframework.http.HttpStatus;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class Phone {
@@ -59,5 +64,25 @@ public class Phone {
 
     public void setStock(int stock) {
         this.stock = stock;
+    }
+
+    public boolean isAvailable() {
+        return active && stock > 0;
+    }
+
+    public void validate() {
+        List<String> violations = new ArrayList<>();
+        if (name == null || name.isBlank()) {
+            violations.add("name must not be blank");
+        }
+        if (stock < 0) {
+            violations.add("stock must not be negative");
+        }
+        if (!violations.isEmpty()) {
+            throw new AppException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_PHONE",
+                    "Invalid Phone: " + String.join("; ", violations));
+        }
     }
 }

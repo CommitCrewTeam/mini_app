@@ -25,6 +25,7 @@ public class PhoneService implements GetAllPhonesUseCase, CreatePhoneUseCase, Ge
 
     @Override
     public Mono<Phone> createPhone(Phone phone) {
+        phone.validate();
         return phoneRepository.save(phone);
     }
 
