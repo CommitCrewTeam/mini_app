@@ -30,4 +30,9 @@ public class PhoneRepositoryAdapter implements PhoneRepository {
         return repository.save(mapper.toEntity(phone))
                 .map(mapper::toDomain);
     }
+
+    @Override
+    public Mono<Integer> getStock(Long id) {
+        return repository.findStockById(id);
+    }
 }

@@ -8,4 +8,6 @@ public interface PhoneRepository {
     Flux<Phone> findAll();
 
     Mono<Phone> save(Phone phone);
+
+    Mono<Integer> getStock(Long id);
 }

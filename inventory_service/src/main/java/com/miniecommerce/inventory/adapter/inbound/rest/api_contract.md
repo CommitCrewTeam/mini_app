@@ -50,6 +50,31 @@ Response `200 OK` — `Mono<ApiResponse<List<Phone>>>`:
 }
 ```
 
+## GET /api/phones/{id}
+
+Check the stock of a phone by id (returns only the `stock` field).
+
+```bash
+curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones/1
+```
+
+The stock is fetched via a raw SQL query
+(`SELECT stock FROM phones WHERE id = :id`) in `PhoneR2dbcRepository`.
+
+Response `200 OK` — `Mono<ApiResponse<Integer>>` (data is the stock quantity):
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": 10,
+  "timestamp": "2026-08-28T13:49:51.829777400Z"
+}
+```
+
+If the id does not exist, `code` is `404` and `data` is `null`.
+
 ## POST /api/phones
 
 Create a phone.
