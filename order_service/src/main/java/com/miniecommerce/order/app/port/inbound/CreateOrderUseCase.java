@@ -1,6 +1,8 @@
 package com.miniecommerce.order.app.port.inbound;
 
+import com.miniecommerce.order.domain.Order;
+
 public interface CreateOrderUseCase {
 
-    String placeOrder();
+    Order placeOrder(Order order);
 }

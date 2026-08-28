@@ -1,6 +1,8 @@
 package com.miniecommerce.order.app.port.outbound;
 
+import com.miniecommerce.order.domain.Order;
+
 public interface SaveOrderPort {
 
-    String save();
+    Order save(Order order);
 }
