@@ -23,7 +23,7 @@ public class ApiResponse<T> {
     }
 
     public static <T> ApiResponse<T> success(T data) {
-        return new ApiResponse<>(true, null, null, data);
+        return new ApiResponse<>(true, "200", null, data);
     }
 
     public static <T> ApiResponse<T> success(T data, String code, String message) {
