@@ -80,7 +80,7 @@ mini_app/
   build.gradle
   docker-compose.yml
   common/
-  product_service/
+  plan_service/
   inventory_service/
   order_service/
   payment_service/
@@ -272,7 +272,7 @@ docs/
   00-overview.md
   01-architecture.md
   02-service-runtime-choice.md
-  03-product_service.md
+   03-plan_service.md
   04-inventory_service.md
   05-order_service.md
   06-payment_service.md

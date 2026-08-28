@@ -6,5 +6,5 @@
             http://www.liquibase.org/xml/ns/dbchangelog
             https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
-    <include file="db/changelog/product/changes/001-seed-product-categories.xml"/>
+    <include file="db/changelog/plan/changes/001-seed-product-categories.xml"/>
 </databaseChangeLog>

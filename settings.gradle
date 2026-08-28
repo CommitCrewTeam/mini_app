@@ -15,7 +15,7 @@ dependencyResolutionManagement {
 rootProject.name = 'mini_ecommerce'
 
 include 'common'
-include 'product_service'
+include 'plan_service'
 include 'inventory_service'
 include 'order_service'
 include 'payment_service'

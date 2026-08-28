@@ -10,8 +10,8 @@ spring:
 
 seed:
   targets:
-    - name: product_service
-      url: jdbc:postgresql://localhost:5432/product_service
+    - name: plan_service
+      url: jdbc:postgresql://localhost:5432/plan_service
       username: ecommerce_user
       password: ecommerce_password
-      change-log: classpath:db/changelog/product/db.changelog-master.xml
+      change-log: classpath:db/changelog/plan/db.changelog-master.xml

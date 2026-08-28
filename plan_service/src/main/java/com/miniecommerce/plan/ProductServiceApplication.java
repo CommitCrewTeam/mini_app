@@ -1,4 +1,4 @@
-package com.miniecommerce.product;
+package com.miniecommerce.plan;
 
 import com.miniecommerce.common.domain.ProductDomain;
 import org.springframework.boot.SpringApplication;
