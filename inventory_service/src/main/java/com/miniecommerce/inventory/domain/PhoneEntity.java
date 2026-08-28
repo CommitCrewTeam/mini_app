@@ -1,6 +1,6 @@
 package com.miniecommerce.inventory.domain;
 
-import java.util.Map;
+import io.r2dbc.postgresql.codec.Json;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.relational.core.mapping.Table;
 
@@ -10,14 +10,14 @@ public class PhoneEntity {
     @Id
     private Long id;
     private String name;
-    private Map<String, Object> detail;
+    private Json detail;
     private boolean active;
     private int stock;
 
     public PhoneEntity() {
     }
 
-    public PhoneEntity(Long id, String name, Map<String, Object> detail, boolean active, int stock) {
+    public PhoneEntity(Long id, String name, Json detail, boolean active, int stock) {
         this.id = id;
         this.name = name;
         this.detail = detail;
@@ -41,11 +41,11 @@ public class PhoneEntity {
         this.name = name;
     }
 
-    public Map<String, Object> getDetail() {
+    public Json getDetail() {
         return detail;
     }
 
-    public void setDetail(Map<String, Object> detail) {
+    public void setDetail(Json detail) {
         this.detail = detail;
     }
 
