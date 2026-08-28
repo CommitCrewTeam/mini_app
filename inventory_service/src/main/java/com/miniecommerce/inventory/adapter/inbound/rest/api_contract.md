@@ -73,7 +73,20 @@ Response `200 OK` — `Mono<ApiResponse<Integer>>` (data is the stock quantity):
 }
 ```
 
-If the id does not exist, `code` is `404` and `data` is `null`.
+If the id does not exist, the controller throws
+`AppException(NOT_FOUND, "PHONE_NOT_FOUND", "Phone not found")`; the shared
+`GlobalExceptionHandler` (from `common`) turns it into HTTP 404 with body
+`code: "PHONE_NOT_FOUND"` and `data: null`.
+
+```json
+{
+  "success": false,
+  "code": "PHONE_NOT_FOUND",
+  "message": "Phone not found",
+  "data": null,
+  "timestamp": "2026-08-28T13:49:51.829777400Z"
+}
+```
 
 ## POST /api/phones
 

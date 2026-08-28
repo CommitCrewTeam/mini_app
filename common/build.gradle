@@ -12,6 +12,11 @@ java {
 }
 
 dependencies {
+    api platform('org.springframework.boot:spring-boot-dependencies:3.3.5')
+    api 'org.springframework:spring-web'
+    api 'com.fasterxml.jackson.core:jackson-databind'
+    api 'io.github.openfeign:feign-core:13.14'
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.5'
 }
 
