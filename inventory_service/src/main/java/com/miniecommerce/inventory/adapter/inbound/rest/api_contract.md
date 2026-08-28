@@ -4,15 +4,20 @@ Service: `inventory_service`
 Base URL: `http://localhost:8082/api/phones`
 Stack: Spring WebFlux + Spring Data R2DBC (reactive, `Flux`/`Mono` end-to-end)
 
-All responses return the domain `Phone` object directly (no wrapper DTO):
+All responses are wrapped in the shared `ApiResponse<T>` (from the `common` module):
 
 ```json
 {
-  "id": 1,
-  "name": "iPhone 15",
-  "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-  "active": true,
-  "stock": 10
+  "success": true,
+  "message": null,
+  "data": {
+    "id": 1,
+    "name": "iPhone 15",
+    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
+    "active": true,
+    "stock": 10
+  },
+  "timestamp": 1724851200000
 }
 ```
 
@@ -26,18 +31,23 @@ List all phones.
 curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones
 ```
 
-Response `200 OK` — `Flux<Phone>`:
+Response `200 OK` — `Mono<ApiResponse<List<Phone>>>`:
 
 ```json
-[
-  {
-    "id": 1,
-    "name": "iPhone 15",
-    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-    "active": true,
-    "stock": 10
-  }
-]
+{
+  "success": true,
+  "message": null,
+  "data": [
+    {
+      "id": 1,
+      "name": "iPhone 15",
+      "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
+      "active": true,
+      "stock": 10
+    }
+  ],
+  "timestamp": 1724851200000
+}
 ```
 
 ## POST /api/phones
@@ -68,15 +78,20 @@ Request body (`PhoneRequest`):
 | active  | boolean               | yes      |                                       |
 | stock   | integer               | yes      |                                       |
 
-Response `200 OK` — `Mono<Phone>` with generated `id`:
+Response `200 OK` — `Mono<ApiResponse<Phone>>` with generated `id`:
 
 ```json
 {
-  "id": 1,
-  "name": "iPhone 15",
-  "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-  "active": true,
-  "stock": 10
+  "success": true,
+  "message": "Phone created",
+  "data": {
+    "id": 1,
+    "name": "iPhone 15",
+    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
+    "active": true,
+    "stock": 10
+  },
+  "timestamp": 1724851200000
 }
 ```
 

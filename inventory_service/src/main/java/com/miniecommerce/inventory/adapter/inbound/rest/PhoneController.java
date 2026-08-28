@@ -1,5 +1,6 @@
 package com.miniecommerce.inventory.adapter.inbound.rest;
 
+import com.miniecommerce.common.response.ApiResponse;
 import com.miniecommerce.inventory.adapter.inbound.rest.dto.PhoneRequest;
 import com.miniecommerce.inventory.adapter.inbound.rest.mapper.PhoneRestMapper;
 import com.miniecommerce.inventory.app.port.inbound.CreatePhoneUseCase;
@@ -10,8 +11,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/phones")
@@ -30,13 +32,16 @@ public class PhoneController {
     }
 
     @GetMapping
-    public Flux<Phone> getAllPhones() {
-        return getAllPhonesUseCase.getAllPhones();
+    public Mono<ApiResponse<List<Phone>>> getAllPhones() {
+        return getAllPhonesUseCase.getAllPhones()
+                .collectList()
+                .map(ApiResponse::success);
     }
 
     @PostMapping
-    public Mono<Phone> createPhone(@RequestBody PhoneRequest request) {
+    public Mono<ApiResponse<Phone>> createPhone(@RequestBody PhoneRequest request) {
         Phone phone = phoneRestMapper.toPhone(request);
-        return createPhoneUseCase.createPhone(phone);
+        return createPhoneUseCase.createPhone(phone)
+                .map(created -> ApiResponse.success(created, "Phone created"));
     }
 }
