@@ -1,44 +1,36 @@
 package com.miniecommerce.order.app.service;
 
-import com.miniecommerce.common.exception.AppException;
 import com.miniecommerce.order.app.port.inbound.CreateOrderUseCase;
 import com.miniecommerce.order.app.port.outbound.InventoryPort;
 import com.miniecommerce.order.app.port.outbound.PublishOrderEventPort;
 import com.miniecommerce.order.app.port.outbound.SaveOrderPort;
 import com.miniecommerce.order.domain.Order;
-import com.miniecommerce.order.domain.OrderStatus;
-import org.springframework.http.HttpStatus;
+import com.miniecommerce.order.domain.PlaceOrderDomainService;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-
 @Service
-public class OrderService implements CreateOrderUseCase {
+public class PlaceOrderApplicationService implements CreateOrderUseCase {
 
     private final InventoryPort inventoryPort;
     private final SaveOrderPort saveOrderPort;
     private final PublishOrderEventPort publishOrderEventPort;
+    private final PlaceOrderDomainService placeOrderDomainService;
 
-    public OrderService(InventoryPort inventoryPort,
-                        SaveOrderPort saveOrderPort,
-                        PublishOrderEventPort publishOrderEventPort) {
+    public PlaceOrderApplicationService(InventoryPort inventoryPort,
+                                        SaveOrderPort saveOrderPort,
+                                        PublishOrderEventPort publishOrderEventPort,
+                                        PlaceOrderDomainService placeOrderDomainService) {
         this.inventoryPort = inventoryPort;
         this.saveOrderPort = saveOrderPort;
         this.publishOrderEventPort = publishOrderEventPort;
+        this.placeOrderDomainService = placeOrderDomainService;
     }
 
     @Override
     public Order placeOrder(Order order) {
         int available = inventoryPort.getStock(order.getPhoneId());
-        if (available < order.getQuantity()) {
-            throw new AppException(
-                    HttpStatus.CONFLICT,
-                    "STOCK_NOT_ENOUGH",
-                    "Not enough stock for phone " + order.getPhoneId());
-        }
-        order.setStatus(OrderStatus.PENDING);
-        order.setCreatedAt(Instant.now());
-        Order saved = saveOrderPort.save(order);
+        Order pending = placeOrderDomainService.placeOrder(order, available);
+        Order saved = saveOrderPort.save(pending);
         publishOrderEventPort.publishOrderCreated(saved);
         return saved;
     }
