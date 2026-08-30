@@ -33,8 +33,10 @@ All responses are wrapped in the shared `ApiResponse<T>` (from the `common` modu
 
 ## POST /api/orders
 
-Place an order. The request builds the `OrderAggregateRoot` (domain aggregate) via
-`OrderRestMapper`; `Order.create(customerId, shippingFee)` then `addItem(...)` for each line.
+Place an order. `OrderRestMapper` translates the request into a plain
+`CreateOrderCommand` (no business logic); `PlaceOrderApplicationService` builds the
+`OrderAggregateRoot` (via `Order.create(customerId, shippingFee)` then
+`addItem(...)` for each line), validates it, persists it, and publishes the event.
 
 ```bash
 curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8083/api/orders \
@@ -142,8 +144,9 @@ Domain invariants (thrown as `AppException`, handled by the shared
 - `id`, `createdAt`, `updatedAt`, `totalAmount` are server-generated; they must
   NOT be sent in the request.
 - Architecture is hexagonal (mirrors `inventory_service`): `OrderController`
-  (adapter/inbound) → `CreateOrderUseCase` (app/port/inbound) →
-  `PlaceOrderApplicationService` (app/service) → `PlaceOrderDomainService`
+  (adapter/inbound) → `OrderRestMapper` (request → `CreateOrderCommand`) →
+  `CreateOrderUseCase` (app/port/inbound) → `PlaceOrderApplicationService`
+  (app/service, builds the aggregate + orchestrates) → `PlaceOrderDomainService`
   (domain) + `SaveOrderPort`/`LoadOrderPort` (app/port/outbound, implemented by
   `OrderPersistenceAdapter`) + `PublishOrderEventPort` (app/port/outbound,
   `OrderKafkaProducer`).
