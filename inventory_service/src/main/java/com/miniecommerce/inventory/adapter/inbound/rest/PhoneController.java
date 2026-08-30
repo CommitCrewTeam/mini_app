@@ -1,6 +1,7 @@
 package com.miniecommerce.inventory.adapter.inbound.rest;
 
 import com.miniecommerce.common.exception.AppException;
+import com.miniecommerce.common.exception.ErrorCode;
 import com.miniecommerce.common.response.ApiResponse;
 import com.miniecommerce.inventory.adapter.inbound.rest.dto.PhoneRequest;
 import com.miniecommerce.inventory.adapter.inbound.rest.mapper.PhoneRestMapper;
@@ -49,8 +50,7 @@ public class PhoneController {
         return getPhoneStockUseCase.getStock(id)
                 .map(ApiResponse::success)
                 .switchIfEmpty(Mono.error(new AppException(
-                        org.springframework.http.HttpStatus.NOT_FOUND,
-                        "PHONE_NOT_FOUND",
+                        ErrorCode.NOT_FOUND,
                         "Phone not found")));
     }
 

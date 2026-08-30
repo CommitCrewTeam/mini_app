@@ -1,23 +1,15 @@
 package com.miniecommerce.common.exception;
 
-import org.springframework.http.HttpStatus;
-
 public class AppException extends RuntimeException {
 
-    private final String code;
-    private final HttpStatus status;
+    private final ErrorCode code;
 
-    public AppException(HttpStatus status, String code, String message) {
+    public AppException(ErrorCode code, String message) {
         super(message);
-        this.status = status;
         this.code = code;
     }
 
-    public HttpStatus getStatus() {
-        return status;
-    }
-
-    public String getCode() {
+    public ErrorCode getErrorCode() {
         return code;
     }
 }

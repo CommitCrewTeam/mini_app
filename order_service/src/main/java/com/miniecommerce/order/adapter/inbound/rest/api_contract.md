@@ -18,11 +18,11 @@ All responses are wrapped in the shared `ApiResponse<T>` (from the `common` modu
       {
         "productId": "p-1",
         "quantity": 2,
-        "unitPrice": { "amount": 15000000 }
+        "unitPrice": 15000000
       }
     ],
-    "shippingFee": { "amount": 20000 },
-    "totalAmount": { "amount": 30020000 },
+    "shippingFee": 20000,
+    "totalAmount": 30020000,
     "status": "PENDING",
     "createdAt": "2026-08-28T13:49:51.829777400Z",
     "updatedAt": "2026-08-28T13:49:51.829777400Z"
@@ -70,7 +70,7 @@ schema managed by Liquibase), then an OrderCreated event is published to Kafka t
 
 `totalAmount` is computed by the aggregate: `SUM(quantity * unitPrice) + shippingFee`.
 
-Response `200 OK` — `ApiResponse<OrderAggregateRoot>`:
+Response `200 OK` — `ApiResponse<OrderResponse>`:
 
 ```json
 {
@@ -84,11 +84,11 @@ Response `200 OK` — `ApiResponse<OrderAggregateRoot>`:
       {
         "productId": "p-1",
         "quantity": 2,
-        "unitPrice": { "amount": 15000000 }
+        "unitPrice": 15000000
       }
     ],
-    "shippingFee": { "amount": 20000 },
-    "totalAmount": { "amount": 30020000 },
+    "shippingFee": 20000,
+    "totalAmount": 30020000,
     "status": "PENDING",
     "createdAt": "2026-08-28T13:49:51.829777400Z",
     "updatedAt": "2026-08-28T13:49:51.829777400Z"
@@ -99,19 +99,14 @@ Response `200 OK` — `ApiResponse<OrderAggregateRoot>`:
 
 ### Invalid domain data — 400 Bad Request
 
-Domain invariants (thrown as `AppException`, handled by the shared
-`GlobalExceptionHandler`):
-- empty items → `ORDER_HAS_NO_ITEMS`
-- blank `customerId` → `INVALID_CUSTOMER`
-- `shippingFee < 0` → `INVALID_MONEY`
-- blank `productId` → `INVALID_ITEM_PRODUCT`
-- `quantity <= 0` → `INVALID_ITEM_QUANTITY`
-- `unitPrice < 0` → `INVALID_ITEM_UNIT_PRICE`
+Domain invariants (thrown as `AppException(ErrorCode.BAD_REQUEST, message)`, handled
+by the shared `GlobalExceptionHandler`): empty items, blank `customerId`,
+`shippingFee < 0`, blank `productId`, `quantity <= 0`, `unitPrice < 0`.
 
 ```json
 {
   "success": false,
-  "code": "ORDER_HAS_NO_ITEMS",
+  "code": "BAD_REQUEST",
   "message": "Order must have at least one item to be placed",
   "data": null,
   "timestamp": "2026-08-28T13:49:51.829777400Z"
@@ -122,11 +117,9 @@ Domain invariants (thrown as `AppException`, handled by the shared
 
 - State machine: `PENDING --confirm()--> CONFIRMED`,
   `PENDING --cancel()--> CANCELLED`, `CONFIRMED --cancel()--> CANCELLED`.
-- Items (OrderItemEntity) can only be added/removed/updated while `status = PENDING`;
-  otherwise `ORDER_NOT_MODIFIABLE`.
-- `confirm()` requires at least one item (`ORDER_HAS_NO_ITEMS`) and status `PENDING`
-  (`ORDER_NOT_CONFIRMABLE`); `cancel()` on an already cancelled order →
-  `ORDER_NOT_CANCELLABLE`.
+- Invalid state transitions throw `AppException` with `ErrorCode.CONFLICT`
+  (e.g. modifying items after `PENDING`, confirming without items, cancelling an
+  already-cancelled order).
 - `totalAmount()` is always computed; there is no setter.
 
 ## Notes
@@ -138,9 +131,14 @@ Domain invariants (thrown as `AppException`, handled by the shared
 - Domain Event and Outbox are not implemented yet; persistence **is** implemented
   via JPA (`OrderPersistenceAdapter` + `OrderEntity`/`OrderItemEntity`) with the
   schema managed by Liquibase (`db/changelog`).
-- Errors use the shared `AppException` from `common`; the `code` string
-  (`ORDER_HAS_NO_ITEMS`, `INVALID_ITEM_QUANTITY`, ...) is what callers should
-  branch on, not the HTTP status.
+- Errors use the shared `AppException(ErrorCode, message)` from `common`. The
+  `code` field in the response is just the category (`BAD_REQUEST`, `NOT_FOUND`,
+  `CONFLICT`, `INTERNAL_ERROR`, ...) and maps 1:1 to the HTTP status via
+  `ErrorCode`; the domain never knows about HTTP or Spring. The `message` carries
+  the specific detail callers care about.
+- Responses expose **`OrderResponse` (REST DTO) only**; the domain
+  `OrderAggregateRoot`/`OrderItem`/`MoneyValue` are never serialized to clients.
+  Money fields are flattened to `long` (VND).
 - `id`, `createdAt`, `updatedAt`, `totalAmount` are server-generated; they must
   NOT be sent in the request.
 - Architecture is hexagonal (mirrors `inventory_service`): `OrderController`

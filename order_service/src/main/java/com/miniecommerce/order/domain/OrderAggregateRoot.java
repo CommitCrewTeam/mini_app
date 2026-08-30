@@ -1,7 +1,7 @@
 package com.miniecommerce.order.domain;
 
 import com.miniecommerce.common.exception.AppException;
-import org.springframework.http.HttpStatus;
+import com.miniecommerce.common.exception.ErrorCode;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -32,10 +32,10 @@ public final class OrderAggregateRoot {
 
     public static OrderAggregateRoot create(String customerId, MoneyValue shippingFee) {
         if (customerId == null || customerId.isBlank()) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_CUSTOMER", "customerId must not be blank");
+            throw new AppException(ErrorCode.BAD_REQUEST, "customerId must not be blank");
         }
         if (shippingFee == null) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_SHIPPING_FEE", "shippingFee must not be null");
+            throw new AppException(ErrorCode.BAD_REQUEST, "shippingFee must not be null");
         }
         Instant now = Instant.now();
         return new OrderAggregateRoot(UUID.randomUUID().toString(), customerId, shippingFee,
@@ -58,7 +58,7 @@ public final class OrderAggregateRoot {
         assertModifiable();
         boolean removed = items.removeIf(item -> item.getProductId().equals(productId));
         if (!removed) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "ITEM_NOT_FOUND", "No item with productId " + productId);
+            throw new AppException(ErrorCode.BAD_REQUEST, "No item with productId " + productId);
         }
         touch();
     }
@@ -66,7 +66,7 @@ public final class OrderAggregateRoot {
     public void updateItemQuantity(String productId, int newQuantity) {
         assertModifiable();
         if (newQuantity <= 0) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_ITEM_QUANTITY",
+            throw new AppException(ErrorCode.BAD_REQUEST,
                     "quantity must be > 0, but was " + newQuantity);
         }
         int index = -1;
@@ -77,7 +77,7 @@ public final class OrderAggregateRoot {
             }
         }
         if (index == -1) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "ITEM_NOT_FOUND", "No item with productId " + productId);
+            throw new AppException(ErrorCode.BAD_REQUEST, "No item with productId " + productId);
         }
         items.set(index, new OrderItem(productId, newQuantity, items.get(index).getUnitPrice()));
         touch();
@@ -85,11 +85,11 @@ public final class OrderAggregateRoot {
 
     public void confirm() {
         if (status != OrderStatus.PENDING) {
-            throw new AppException(HttpStatus.CONFLICT, "ORDER_NOT_CONFIRMABLE",
+            throw new AppException(ErrorCode.CONFLICT,
                     "Order can only be confirmed from PENDING, current=" + status);
         }
         if (items.isEmpty()) {
-            throw new AppException(HttpStatus.CONFLICT, "ORDER_HAS_NO_ITEMS",
+            throw new AppException(ErrorCode.CONFLICT,
                     "Order must have at least one item to be confirmed");
         }
         status = OrderStatus.CONFIRMED;
@@ -98,7 +98,7 @@ public final class OrderAggregateRoot {
 
     public void cancel() {
         if (status == OrderStatus.CANCELLED) {
-            throw new AppException(HttpStatus.CONFLICT, "ORDER_NOT_CANCELLABLE", "Order is already CANCELLED");
+            throw new AppException(ErrorCode.CONFLICT, "Order is already CANCELLED");
         }
         status = OrderStatus.CANCELLED;
         touch();
@@ -149,7 +149,7 @@ public final class OrderAggregateRoot {
 
     private void assertModifiable() {
         if (status != OrderStatus.PENDING) {
-            throw new AppException(HttpStatus.CONFLICT, "ORDER_NOT_MODIFIABLE",
+            throw new AppException(ErrorCode.CONFLICT,
                     "Order items can only be modified when status is PENDING, current=" + status);
         }
     }

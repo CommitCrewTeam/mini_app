@@ -3,12 +3,12 @@ package com.miniecommerce.order.adapter.outbound.messaging;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniecommerce.common.exception.AppException;
+import com.miniecommerce.common.exception.ErrorCode;
 import com.miniecommerce.order.app.port.outbound.PublishOrderEventPort;
 import com.miniecommerce.order.domain.OrderAggregateRoot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
@@ -42,7 +42,7 @@ public class OrderKafkaProducer implements PublishOrderEventPort {
                         }
                     });
         } catch (JsonProcessingException e) {
-            throw new AppException(HttpStatus.INTERNAL_SERVER_ERROR, "EVENT_SERIALIZATION_FAILED",
+            throw new AppException(ErrorCode.INTERNAL_ERROR,
                     "Cannot serialize order event: " + e.getMessage());
         }
     }

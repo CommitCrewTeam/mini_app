@@ -1,7 +1,7 @@
 package com.miniecommerce.order.domain;
 
 import com.miniecommerce.common.exception.AppException;
-import org.springframework.http.HttpStatus;
+import com.miniecommerce.common.exception.ErrorCode;
 
 import java.util.Objects;
 
@@ -13,14 +13,14 @@ public final class OrderItem {
 
     OrderItem(String productId, int quantity, MoneyValue unitPrice) {
         if (productId == null || productId.isBlank()) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_ITEM_PRODUCT", "productId must not be blank");
+            throw new AppException(ErrorCode.BAD_REQUEST, "productId must not be blank");
         }
         if (quantity <= 0) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_ITEM_QUANTITY",
+            throw new AppException(ErrorCode.BAD_REQUEST,
                     "quantity must be > 0, but was " + quantity);
         }
         if (unitPrice == null || unitPrice.getAmount() < 0) {
-            throw new AppException(HttpStatus.BAD_REQUEST, "INVALID_ITEM_UNIT_PRICE", "unitPrice must be >= 0");
+            throw new AppException(ErrorCode.BAD_REQUEST, "unitPrice must be >= 0");
         }
         this.productId = productId;
         this.quantity = quantity;

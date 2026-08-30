@@ -1,7 +1,7 @@
 package com.miniecommerce.inventory.domain;
 
 import com.miniecommerce.common.exception.AppException;
-import org.springframework.http.HttpStatus;
+import com.miniecommerce.common.exception.ErrorCode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -80,8 +80,7 @@ public class Phone {
         }
         if (!violations.isEmpty()) {
             throw new AppException(
-                    HttpStatus.BAD_REQUEST,
-                    "INVALID_PHONE",
+                    ErrorCode.BAD_REQUEST,
                     "Invalid Phone: " + String.join("; ", violations));
         }
     }

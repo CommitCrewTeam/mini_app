@@ -1,7 +1,7 @@
 package com.miniecommerce.order.domain;
 
 import com.miniecommerce.common.exception.AppException;
-import org.springframework.http.HttpStatus;
+import com.miniecommerce.common.exception.ErrorCode;
 
 import java.util.Objects;
 
@@ -14,8 +14,7 @@ public final class MoneyValue {
     public MoneyValue(long amount) {
         if (amount < 0) {
             throw new AppException(
-                    HttpStatus.BAD_REQUEST,
-                    "INVALID_MONEY",
+                    ErrorCode.BAD_REQUEST,
                     "Money must not be negative: " + amount);
         }
         this.amount = amount;
