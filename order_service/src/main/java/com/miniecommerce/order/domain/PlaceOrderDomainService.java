@@ -7,12 +7,8 @@ import org.springframework.stereotype.Service;
 @Service
 public class PlaceOrderDomainService {
 
-    public OrderAggregateRoot placeOrder(OrderAggregateRoot order) {
-        if (!order.hasItems()) {
-            throw new AppException(
-                    ErrorCode.BAD_REQUEST,
-                    "Order must have at least one item to be placed");
-        }
-        return order;
+    public boolean crossDomainValidate(OrderAggregateRoot order) {
+
+        return true;
     }
 }

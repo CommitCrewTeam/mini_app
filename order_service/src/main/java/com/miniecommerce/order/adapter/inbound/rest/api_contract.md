@@ -65,8 +65,10 @@ Request body (`OrderRequest`):
 
 The order is created as `status = PENDING` (UUID `id`, timestamps server-generated),
 persisted by `OrderPersistenceAdapter` (JPA over `OrderEntity`/`OrderItemEntity`,
-schema managed by Liquibase), then an OrderCreated event is published to Kafka topic
-`order.placed` (fire-and-forget).
+schema managed by Liquibase), then an `OrderPlacedEvent` is mapped from the saved
+aggregate (`toOrderPlacedEvent`, inside `PlaceOrderApplicationService`) and published
+to Kafka topic `order.placed` (fire-and-forget). The event payload is a dedicated
+event object, never the domain aggregate.
 
 `totalAmount` is computed by the aggregate: `SUM(quantity * unitPrice) + shippingFee`.
 

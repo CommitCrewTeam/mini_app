@@ -1,8 +1,8 @@
 package com.miniecommerce.order.app.port.outbound;
 
-import com.miniecommerce.order.domain.OrderAggregateRoot;
+import com.miniecommerce.order.domain.event.OrderPlacedEvent;
 
 public interface PublishOrderEventPort {
 
-    void publishOrderCreated(OrderAggregateRoot order);
+    void publishOrderCreated(OrderPlacedEvent event);
 }

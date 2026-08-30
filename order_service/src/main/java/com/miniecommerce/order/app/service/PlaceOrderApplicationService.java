@@ -1,5 +1,7 @@
 package com.miniecommerce.order.app.service;
 
+import com.miniecommerce.common.exception.AppException;
+import com.miniecommerce.common.exception.ErrorCode;
 import com.miniecommerce.order.app.command.CreateOrderCommand;
 import com.miniecommerce.order.app.port.inbound.CreateOrderUseCase;
 import com.miniecommerce.order.app.port.outbound.PublishOrderEventPort;
@@ -7,8 +9,12 @@ import com.miniecommerce.order.app.port.outbound.SaveOrderPort;
 import com.miniecommerce.order.domain.MoneyValue;
 import com.miniecommerce.order.domain.OrderAggregateRoot;
 import com.miniecommerce.order.domain.PlaceOrderDomainService;
+import com.miniecommerce.order.domain.event.OrderPlacedEvent;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.UUID;
 
 @Service
 public class PlaceOrderApplicationService implements CreateOrderUseCase {
@@ -33,9 +39,27 @@ public class PlaceOrderApplicationService implements CreateOrderUseCase {
         command.items().forEach(item ->
                 order.addItem(item.productId(), item.quantity(), MoneyValue.of(item.unitPrice())));
 
-        OrderAggregateRoot pending = placeOrderDomainService.placeOrder(order);
-        OrderAggregateRoot saved = saveOrderPort.save(pending);
-        publishOrderEventPort.publishOrderCreated(saved);
+         if (!placeOrderDomainService.crossDomainValidate(order)) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Order failed cross-domain validation");
+        }
+        OrderAggregateRoot saved = saveOrderPort.save(order);
+        publishOrderEventPort.publishOrderCreated(toOrderPlacedEvent(saved));
         return saved;
+    }
+
+    private OrderPlacedEvent toOrderPlacedEvent(OrderAggregateRoot order) {
+        List<OrderPlacedEvent.Item> items = order.getItems().stream()
+                .map(item -> new OrderPlacedEvent.Item(
+                        item.getProductId(), item.getQuantity(), item.getUnitPrice().getAmount()))
+                .toList();
+        return new OrderPlacedEvent(
+                UUID.randomUUID().toString(),
+                order.getId(),
+                order.getCustomerId(),
+                items,
+                order.getShippingFee().getAmount(),
+                order.totalAmount().getAmount(),
+                order.getStatus(),
+                order.getCreatedAt());
     }
 }
