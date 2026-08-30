@@ -1,8 +1,8 @@
 package com.miniecommerce.order.app.port.inbound;
 
-import com.miniecommerce.order.domain.Order;
+import com.miniecommerce.order.domain.OrderAggregateRoot;
 
 public interface CreateOrderUseCase {
 
-    Order placeOrder(Order order);
+    OrderAggregateRoot placeOrder(OrderAggregateRoot order);
 }

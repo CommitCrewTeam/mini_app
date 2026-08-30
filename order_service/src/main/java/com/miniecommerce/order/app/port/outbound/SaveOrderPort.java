@@ -1,8 +1,8 @@
 package com.miniecommerce.order.app.port.outbound;
 
-import com.miniecommerce.order.domain.Order;
+import com.miniecommerce.order.domain.OrderAggregateRoot;
 
 public interface SaveOrderPort {
 
-    Order save(Order order);
+    OrderAggregateRoot save(OrderAggregateRoot order);
 }

@@ -4,7 +4,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniecommerce.common.exception.AppException;
 import com.miniecommerce.order.app.port.outbound.PublishOrderEventPort;
-import com.miniecommerce.order.domain.Order;
+import com.miniecommerce.order.domain.OrderAggregateRoot;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -30,7 +30,7 @@ public class OrderKafkaProducer implements PublishOrderEventPort {
     }
 
     @Override
-    public void publishOrderCreated(Order order) {
+    public void publishOrderCreated(OrderAggregateRoot order) {
         try {
             String payload = objectMapper.writeValueAsString(order);
             kafkaTemplate.send(topic, String.valueOf(order.getId()), payload)

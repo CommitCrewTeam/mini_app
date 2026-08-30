@@ -1,15 +1,17 @@
 package com.miniecommerce.order.adapter.inbound.rest.mapper;
 
 import com.miniecommerce.order.adapter.inbound.rest.dto.OrderRequest;
-import com.miniecommerce.order.domain.Order;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
+import com.miniecommerce.order.domain.MoneyValue;
+import com.miniecommerce.order.domain.OrderAggregateRoot;
+import org.springframework.stereotype.Component;
 
-@Mapper(componentModel = "spring")
-public interface OrderRestMapper {
+@Component
+public class OrderRestMapper {
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "status", ignore = true)
-    @Mapping(target = "createdAt", ignore = true)
-    Order toOrder(OrderRequest request);
+    public OrderAggregateRoot toOrder(OrderRequest request) {
+        OrderAggregateRoot order = OrderAggregateRoot.create(request.customerId(), MoneyValue.of(request.shippingFee()));
+        request.items().forEach(item ->
+                order.addItem(item.productId(), item.quantity(), MoneyValue.of(item.unitPrice())));
+        return order;
+    }
 }

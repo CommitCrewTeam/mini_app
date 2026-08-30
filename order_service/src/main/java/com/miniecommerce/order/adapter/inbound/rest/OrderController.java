@@ -4,7 +4,7 @@ import com.miniecommerce.common.response.ApiResponse;
 import com.miniecommerce.order.adapter.inbound.rest.dto.OrderRequest;
 import com.miniecommerce.order.adapter.inbound.rest.mapper.OrderRestMapper;
 import com.miniecommerce.order.app.port.inbound.CreateOrderUseCase;
-import com.miniecommerce.order.domain.Order;
+import com.miniecommerce.order.domain.OrderAggregateRoot;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -23,9 +23,9 @@ public class OrderController {
     }
 
     @PostMapping
-    public ApiResponse<Order> placeOrder(@RequestBody OrderRequest request) {
-        Order order = orderRestMapper.toOrder(request);
-        Order saved = createOrderUseCase.placeOrder(order);
+    public ApiResponse<OrderAggregateRoot> placeOrder(@RequestBody OrderRequest request) {
+        OrderAggregateRoot order = orderRestMapper.toOrder(request);
+        OrderAggregateRoot saved = createOrderUseCase.placeOrder(order);
         return ApiResponse.success(saved);
     }
 }

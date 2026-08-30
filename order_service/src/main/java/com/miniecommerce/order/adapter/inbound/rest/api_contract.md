@@ -2,7 +2,7 @@
 
 Service: `order_service`
 Base URL: `http://localhost:8083/api/orders`
-Stack: Spring Web (servlet MVC) + Spring Data JPA + OpenFeign (calls `inventory_service`)
+Stack: Spring Web (servlet MVC) + OpenFeign + Spring Kafka
 
 All responses are wrapped in the shared `ApiResponse<T>` (from the `common` module):
 
@@ -12,11 +12,20 @@ All responses are wrapped in the shared `ApiResponse<T>` (from the `common` modu
   "code": "200",
   "message": null,
   "data": {
-    "id": 1,
-    "phoneId": 1,
-    "quantity": 2,
+    "id": "6f2a8e9d-1e3a-4b2c-9d8f-0a1b2c3d4e5f",
+    "customerId": "c-1",
+    "items": [
+      {
+        "productId": "p-1",
+        "quantity": 2,
+        "unitPrice": { "amount": 15000000 }
+      }
+    ],
+    "shippingFee": { "amount": 20000 },
+    "totalAmount": { "amount": 30020000 },
     "status": "PENDING",
-    "createdAt": "2026-08-28T13:49:51.829777400Z"
+    "createdAt": "2026-08-28T13:49:51.829777400Z",
+    "updatedAt": "2026-08-28T13:49:51.829777400Z"
   },
   "timestamp": "2026-08-28T13:49:51.829777400Z"
 }
@@ -24,31 +33,42 @@ All responses are wrapped in the shared `ApiResponse<T>` (from the `common` modu
 
 ## POST /api/orders
 
-Place an order. The service first checks stock in `inventory_service` (via Feign,
-`GET /api/phones/{phoneId}`) and only creates the order when stock is sufficient.
+Place an order. The request builds the `OrderAggregateRoot` (domain aggregate) via
+`OrderRestMapper`; `Order.create(customerId, shippingFee)` then `addItem(...)` for each line.
 
 ```bash
 curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8083/api/orders \
   -H "Content-Type: application/json" \
   -d '{
-    "phoneId": 1,
-    "quantity": 2
+    "customerId": "c-1",
+    "shippingFee": 20000,
+    "items": [
+      { "productId": "p-1", "quantity": 2, "unitPrice": 15000000 }
+    ]
   }'
 ```
 
 Request body (`OrderRequest`):
 
-| Field    | Type    | Required | Note                                  |
-|----------|---------|----------|---------------------------------------|
-| phoneId  | long    | yes      | id of the phone in `inventory_service`|
-| quantity | integer | yes      | must be > 0                           |
+| Field       | Type    | Required | Note                                       |
+|-------------|---------|----------|--------------------------------------------|
+| customerId  | string  | yes      | must not be blank                          |
+| shippingFee | long    | yes      | money in VND, must be >= 0                 |
+| items       | array   | yes      | at least 1 item required (see below)       |
+| items[].productId | string | yes  | must not be blank                          |
+| items[].quantity  | integer | yes | must be > 0                                |
+| items[].unitPrice | long    | yes | money in VND, must be >= 0                 |
 
 ### Success — 200 OK
 
-When `inventory_service` reports enough stock, the order is created with
-`status = PENDING` and persisted (currently a stub adapter that assigns `id = 1`).
+The order is created as `status = PENDING` (UUID `id`, timestamps server-generated),
+persisted by `OrderPersistenceAdapter` (JPA over `OrderEntity`/`OrderItemEntity`,
+schema managed by Liquibase), then an OrderCreated event is published to Kafka topic
+`order.placed` (fire-and-forget).
 
-Response `200 OK` — `ApiResponse<Order>`:
+`totalAmount` is computed by the aggregate: `SUM(quantity * unitPrice) + shippingFee`.
+
+Response `200 OK` — `ApiResponse<OrderAggregateRoot>`:
 
 ```json
 {
@@ -56,60 +76,77 @@ Response `200 OK` — `ApiResponse<Order>`:
   "code": "200",
   "message": null,
   "data": {
-    "id": 1,
-    "phoneId": 1,
-    "quantity": 2,
+    "id": "6f2a8e9d-1e3a-4b2c-9d8f-0a1b2c3d4e5f",
+    "customerId": "c-1",
+    "items": [
+      {
+        "productId": "p-1",
+        "quantity": 2,
+        "unitPrice": { "amount": 15000000 }
+      }
+    ],
+    "shippingFee": { "amount": 20000 },
+    "totalAmount": { "amount": 30020000 },
     "status": "PENDING",
-    "createdAt": "2026-08-28T13:49:51.829777400Z"
+    "createdAt": "2026-08-28T13:49:51.829777400Z",
+    "updatedAt": "2026-08-28T13:49:51.829777400Z"
   },
   "timestamp": "2026-08-28T13:49:51.829777400Z"
 }
 ```
 
-### Out of stock — 409 Conflict
+### Invalid domain data — 400 Bad Request
 
-When `available < quantity`, the use case throws
-`AppException(CONFLICT, "STOCK_NOT_ENOUGH", "Not enough stock for phone N")`.
-The shared `GlobalExceptionHandler` (from `common`) returns HTTP 409:
+Domain invariants (thrown as `AppException`, handled by the shared
+`GlobalExceptionHandler`):
+- empty items → `ORDER_HAS_NO_ITEMS`
+- blank `customerId` → `INVALID_CUSTOMER`
+- `shippingFee < 0` → `INVALID_MONEY`
+- blank `productId` → `INVALID_ITEM_PRODUCT`
+- `quantity <= 0` → `INVALID_ITEM_QUANTITY`
+- `unitPrice < 0` → `INVALID_ITEM_UNIT_PRICE`
 
 ```json
 {
   "success": false,
-  "code": "STOCK_NOT_ENOUGH",
-  "message": "Not enough stock for phone 1",
+  "code": "ORDER_HAS_NO_ITEMS",
+  "message": "Order must have at least one item to be placed",
   "data": null,
   "timestamp": "2026-08-28T13:49:51.829777400Z"
 }
 ```
 
-### Phone not found — 404 Not Found
+## Domain rules (OrderAggregateRoot)
 
-If `inventory_service` answers `404 PHONE_NOT_FOUND`, the `CommonFeignErrorDecoder`
-(from `common`) rebuilds the same `AppException` and it propagates to the order
-service's `GlobalExceptionHandler`, returning HTTP 404 with `code: "PHONE_NOT_FOUND"`:
-
-```json
-{
-  "success": false,
-  "code": "PHONE_NOT_FOUND",
-  "message": "Phone not found",
-  "data": null,
-  "timestamp": "2026-08-28T13:49:51.829777400Z"
-}
-```
+- State machine: `PENDING --confirm()--> CONFIRMED`,
+  `PENDING --cancel()--> CANCELLED`, `CONFIRMED --cancel()--> CANCELLED`.
+- Items (OrderItemEntity) can only be added/removed/updated while `status = PENDING`;
+  otherwise `ORDER_NOT_MODIFIABLE`.
+- `confirm()` requires at least one item (`ORDER_HAS_NO_ITEMS`) and status `PENDING`
+  (`ORDER_NOT_CONFIRMABLE`); `cancel()` on an already cancelled order →
+  `ORDER_NOT_CANCELLABLE`.
+- `totalAmount()` is always computed; there is no setter.
 
 ## Notes
 
-- This contract covers the flow **up to the Feign call to `inventory_service`**
-  (check stock + create order as `PENDING`). Reserve/finalize/release, Kafka
-  events, payment and expiry handling are not implemented yet.
-- `inventory_service` must be reachable at `app.inventory.url`
-  (default `http://localhost:8082`); override with `INVENTORY_URL`.
+- Kafka topic: `app.kafka.topics.order-placed` (default `order.placed`).
+- Inventory stock verification and Customer communication are **out of scope**
+  for this iteration; the `InventoryPort`/`InventoryFeignAdapter`/`InventoryClient`
+  files remain for the next step but are not wired into the place-order flow.
+- Domain Event and Outbox are not implemented yet; persistence **is** implemented
+  via JPA (`OrderPersistenceAdapter` + `OrderEntity`/`OrderItemEntity`) with the
+  schema managed by Liquibase (`db/changelog`).
 - Errors use the shared `AppException` from `common`; the `code` string
-  (`STOCK_NOT_ENOUGH`, `PHONE_NOT_FOUND`, ...) is what callers should branch on,
-  not the HTTP status.
-- `id` and `createdAt` are server-generated; they must NOT be sent in the request.
+  (`ORDER_HAS_NO_ITEMS`, `INVALID_ITEM_QUANTITY`, ...) is what callers should
+  branch on, not the HTTP status.
+- `id`, `createdAt`, `updatedAt`, `totalAmount` are server-generated; they must
+  NOT be sent in the request.
 - Architecture is hexagonal (mirrors `inventory_service`): `OrderController`
-  (adapter/inbound) → `CreateOrderUseCase` (app/port/inbound) → `OrderService`
-  (app/service) → `InventoryPort` (app/port/outbound, implemented by
-  `InventoryFeignAdapter` over OpenFeign) + `SaveOrderPort` (stub).
+  (adapter/inbound) → `CreateOrderUseCase` (app/port/inbound) →
+  `PlaceOrderApplicationService` (app/service) → `PlaceOrderDomainService`
+  (domain) + `SaveOrderPort`/`LoadOrderPort` (app/port/outbound, implemented by
+  `OrderPersistenceAdapter`) + `PublishOrderEventPort` (app/port/outbound,
+  `OrderKafkaProducer`).
+- Domain naming follows DDD role suffixes: `OrderAggregateRoot` (aggregate),
+  `OrderItem` (domain entity), `MoneyValue` (value object); the JPA row mappings
+  use a separate `OrderEntity`/`OrderItemEntity` in the persistence adapter.
