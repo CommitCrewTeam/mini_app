@@ -1,1 +1,33 @@
-databaseChangeLog: []
+databaseChangeLog:
+  - changeSet:
+      id: 001-create-payment-methods-table
+      author: codex
+      changes:
+        - createTable:
+            tableName: payment_methods
+            columns:
+              - column:
+                  name: id
+                  type: BIGSERIAL
+                  constraints:
+                    primaryKey: true
+                    primaryKeyName: pk_payment_methods
+                    nullable: false
+              - column:
+                  name: code
+                  type: VARCHAR(64)
+                  constraints:
+                    nullable: false
+                    unique: true
+                    uniqueConstraintName: uk_payment_methods_code
+              - column:
+                  name: name
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: is_active
+                  type: BOOLEAN
+                  defaultValueBoolean: true
+                  constraints:
+                    nullable: false
