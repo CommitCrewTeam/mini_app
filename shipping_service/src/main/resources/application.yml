@@ -1,0 +1,16 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: shipping_service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/shipping_service
+    username: ecommerce_user
+    password: ecommerce_password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
