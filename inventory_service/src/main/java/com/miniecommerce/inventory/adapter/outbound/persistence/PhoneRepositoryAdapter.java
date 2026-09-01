@@ -7,6 +7,8 @@ import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
+
 @Repository
 public class PhoneRepositoryAdapter implements PhoneRepository {
 
@@ -33,5 +35,14 @@ public class PhoneRepositoryAdapter implements PhoneRepository {
     @Override
     public Mono<Integer> getStock(Long id) {
         return repository.findStockById(id);
+    }
+
+    @Override
+    public Flux<Phone> findByIds(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Flux.empty();
+        }
+        return repository.findAllById(ids)
+                .map(mapper::toDomain);
     }
 }

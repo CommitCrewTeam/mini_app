@@ -7,6 +7,7 @@ import com.miniecommerce.inventory.adapter.inbound.rest.dto.PhoneRequest;
 import com.miniecommerce.inventory.adapter.inbound.rest.mapper.PhoneRestMapper;
 import com.miniecommerce.inventory.app.port.inbound.CreatePhoneUseCase;
 import com.miniecommerce.inventory.app.port.inbound.GetAllPhonesUseCase;
+import com.miniecommerce.inventory.app.port.inbound.GetItemsForOrderPreviewUseCase;
 import com.miniecommerce.inventory.app.port.inbound.GetPhoneStockUseCase;
 import com.miniecommerce.inventory.domain.Phone;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import reactor.core.publisher.Mono;
 
@@ -25,15 +27,18 @@ public class PhoneController {
 
     private final GetAllPhonesUseCase getAllPhonesUseCase;
     private final GetPhoneStockUseCase getPhoneStockUseCase;
+    private final GetItemsForOrderPreviewUseCase getItemsForOrderPreviewUseCase;
     private final CreatePhoneUseCase createPhoneUseCase;
     private final PhoneRestMapper phoneRestMapper;
 
     public PhoneController(GetAllPhonesUseCase getAllPhonesUseCase,
                            GetPhoneStockUseCase getPhoneStockUseCase,
+                           GetItemsForOrderPreviewUseCase getItemsForOrderPreviewUseCase,
                            CreatePhoneUseCase createPhoneUseCase,
                            PhoneRestMapper phoneRestMapper) {
         this.getAllPhonesUseCase = getAllPhonesUseCase;
         this.getPhoneStockUseCase = getPhoneStockUseCase;
+        this.getItemsForOrderPreviewUseCase = getItemsForOrderPreviewUseCase;
         this.createPhoneUseCase = createPhoneUseCase;
         this.phoneRestMapper = phoneRestMapper;
     }
@@ -41,6 +46,13 @@ public class PhoneController {
     @GetMapping
     public Mono<ApiResponse<List<Phone>>> getAllPhones() {
         return getAllPhonesUseCase.getAllPhones()
+                .collectList()
+                .map(ApiResponse::success);
+    }
+
+    @GetMapping("/by-ids")
+    public Mono<ApiResponse<List<Phone>>> getItemsForOrderPreview(@RequestParam("ids") List<Long> ids) {
+        return getItemsForOrderPreviewUseCase.getItemsForOrderPreview(ids)
                 .collectList()
                 .map(ApiResponse::success);
     }
