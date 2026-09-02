@@ -13,31 +13,31 @@
         <comment>Seed test data for phones table</comment>
         <insert tableName="phones">
             <column name="name" value="iPhone 15 Pro Max"/>
-            <column name="detail" valueJSONB='{"brand": "Apple", "color": "Natural Titanium", "storage": "256GB"}'/>
+            <column name="detail" valueComputed="'{&quot;brand&quot;: &quot;Apple&quot;, &quot;color&quot;: &quot;Natural Titanium&quot;, &quot;storage&quot;: &quot;256GB&quot;}'::jsonb"/>
             <column name="active" valueBoolean="true"/>
             <column name="stock" valueNumeric="25"/>
         </insert>
         <insert tableName="phones">
             <column name="name" value="Samsung Galaxy S24 Ultra"/>
-            <column name="detail" valueJSONB='{"brand": "Samsung", "color": "Titanium Gray", "storage": "512GB"}'/>
+            <column name="detail" valueComputed="'{&quot;brand&quot;: &quot;Samsung&quot;, &quot;color&quot;: &quot;Titanium Gray&quot;, &quot;storage&quot;: &quot;512GB&quot;}'::jsonb"/>
             <column name="active" valueBoolean="true"/>
             <column name="stock" valueNumeric="18"/>
         </insert>
         <insert tableName="phones">
             <column name="name" value="Xiaomi 14 Ultra"/>
-            <column name="detail" valueJSONB='{"brand": "Xiaomi", "color": "Black", "storage": "512GB"}'/>
+            <column name="detail" valueComputed="'{&quot;brand&quot;: &quot;Xiaomi&quot;, &quot;color&quot;: &quot;Black&quot;, &quot;storage&quot;: &quot;512GB&quot;}'::jsonb"/>
             <column name="active" valueBoolean="true"/>
             <column name="stock" valueNumeric="40"/>
         </insert>
         <insert tableName="phones">
             <column name="name" value="Google Pixel 9 Pro"/>
-            <column name="detail" valueJSONB='{"brand": "Google", "color": "Obsidian", "storage": "256GB"}'/>
+            <column name="detail" valueComputed="'{&quot;brand&quot;: &quot;Google&quot;, &quot;color&quot;: &quot;Obsidian&quot;, &quot;storage&quot;: &quot;256GB&quot;}'::jsonb"/>
             <column name="active" valueBoolean="true"/>
             <column name="stock" valueNumeric="12"/>
         </insert>
         <insert tableName="phones">
             <column name="name" value="OnePlus 12"/>
-            <column name="detail" valueJSONB='{"brand": "OnePlus", "color": "Flowy Emerald", "storage": "256GB"}'/>
+            <column name="detail" valueComputed="'{&quot;brand&quot;: &quot;OnePlus&quot;, &quot;color&quot;: &quot;Flowy Emerald&quot;, &quot;storage&quot;: &quot;256GB&quot;}'::jsonb"/>
             <column name="active" valueBoolean="false"/>
             <column name="stock" valueNumeric="7"/>
         </insert>
