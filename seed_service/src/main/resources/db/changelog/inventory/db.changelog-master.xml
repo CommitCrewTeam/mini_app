@@ -6,4 +6,5 @@
             http://www.liquibase.org/xml/ns/dbchangelog
             https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
+    <include file="db/changelog/inventory/phones_test_data.xml"/>
 </databaseChangeLog>

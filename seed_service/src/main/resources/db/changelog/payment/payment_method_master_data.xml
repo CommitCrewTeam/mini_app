@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+            http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="payment_method_master_data" author="seed_service">
+        <comment>Seed master data for payment_methods table</comment>
+        <preConditions onFail="HALT">
+            <tableExists tableName="payment_methods"/>
+        </preConditions>
+        <insert tableName="payment_methods">
+            <column name="code" value="COD"/>
+            <column name="name" value="Cash on Delivery"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="payment_methods">
+            <column name="code" value="VNPAY"/>
+            <column name="name" value="VNPay"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="payment_methods">
+            <column name="code" value="MOMO"/>
+            <column name="name" value="Momo E-Wallet"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="payment_methods">
+            <column name="code" value="VISA"/>
+            <column name="name" value="Credit / Debit Card"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

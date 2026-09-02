@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+            http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="shipping_method_master_data" author="seed_service">
+        <comment>Seed master data for shipping_methods table</comment>
+        <preConditions onFail="HALT">
+            <tableExists tableName="shipping_methods"/>
+        </preConditions>
+        <insert tableName="shipping_methods">
+            <column name="code" value="STANDARD"/>
+            <column name="name" value="Standard Delivery"/>
+            <column name="base_fee" valueNumeric="15000"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="shipping_methods">
+            <column name="code" value="EXPRESS"/>
+            <column name="name" value="Express Delivery"/>
+            <column name="base_fee" valueNumeric="30000"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="shipping_methods">
+            <column name="code" value="SAME_DAY"/>
+            <column name="name" value="Same Day Delivery"/>
+            <column name="base_fee" valueNumeric="45000"/>
+            <column name="is_active" valueBoolean="true"/>
+        </insert>
+        <insert tableName="shipping_methods">
+            <column name="code" value="COD"/>
+            <column name="name" value="Cash On Delivery Shipping"/>
+            <column name="base_fee" valueNumeric="20000"/>
+            <column name="is_active" valueBoolean="false"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>

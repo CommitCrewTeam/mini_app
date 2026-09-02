@@ -15,3 +15,18 @@ seed:
       username: ecommerce_user
       password: ecommerce_password
       change-log: classpath:db/changelog/plan/db.changelog-master.xml
+    - name: payment_service
+      url: jdbc:postgresql://localhost:5432/payment_service
+      username: ecommerce_user
+      password: ecommerce_password
+      change-log: classpath:db/changelog/payment/db.changelog-master.xml
+    - name: shipping_service
+      url: jdbc:postgresql://localhost:5432/shipping_service
+      username: ecommerce_user
+      password: ecommerce_password
+      change-log: classpath:db/changelog/shipping/db.changelog-master.xml
+    - name: inventory_service
+      url: jdbc:postgresql://localhost:5432/inventory_service
+      username: ecommerce_user
+      password: ecommerce_password
+      change-log: classpath:db/changelog/inventory/db.changelog-master.xml

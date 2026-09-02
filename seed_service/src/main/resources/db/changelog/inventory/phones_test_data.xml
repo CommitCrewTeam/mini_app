@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="
+            http://www.liquibase.org/xml/ns/dbchangelog
+            https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <changeSet id="phones_test_data" author="seed_service">
+        <comment>Seed test data for phones table</comment>
+        <preConditions onFail="HALT">
+            <tableExists tableName="phones"/>
+        </preConditions>
+        <insert tableName="phones">
+            <column name="name" value="iPhone 15 Pro Max"/>
+            <column name="detail" valueJSONB='{"brand": "Apple", "color": "Natural Titanium", "storage": "256GB"}'/>
+            <column name="active" valueBoolean="true"/>
+            <column name="stock" valueNumeric="25"/>
+        </insert>
+        <insert tableName="phones">
+            <column name="name" value="Samsung Galaxy S24 Ultra"/>
+            <column name="detail" valueJSONB='{"brand": "Samsung", "color": "Titanium Gray", "storage": "512GB"}'/>
+            <column name="active" valueBoolean="true"/>
+            <column name="stock" valueNumeric="18"/>
+        </insert>
+        <insert tableName="phones">
+            <column name="name" value="Xiaomi 14 Ultra"/>
+            <column name="detail" valueJSONB='{"brand": "Xiaomi", "color": "Black", "storage": "512GB"}'/>
+            <column name="active" valueBoolean="true"/>
+            <column name="stock" valueNumeric="40"/>
+        </insert>
+        <insert tableName="phones">
+            <column name="name" value="Google Pixel 9 Pro"/>
+            <column name="detail" valueJSONB='{"brand": "Google", "color": "Obsidian", "storage": "256GB"}'/>
+            <column name="active" valueBoolean="true"/>
+            <column name="stock" valueNumeric="12"/>
+        </insert>
+        <insert tableName="phones">
+            <column name="name" value="OnePlus 12"/>
+            <column name="detail" valueJSONB='{"brand": "OnePlus", "color": "Flowy Emerald", "storage": "256GB"}'/>
+            <column name="active" valueBoolean="false"/>
+            <column name="stock" valueNumeric="7"/>
+        </insert>
+    </changeSet>
+</databaseChangeLog>
