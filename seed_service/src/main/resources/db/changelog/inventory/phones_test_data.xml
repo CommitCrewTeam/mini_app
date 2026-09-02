@@ -7,10 +7,10 @@
             https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="phones_test_data" author="seed_service">
-        <comment>Seed test data for phones table</comment>
         <preConditions onFail="HALT">
             <tableExists tableName="phones"/>
         </preConditions>
+        <comment>Seed test data for phones table</comment>
         <insert tableName="phones">
             <column name="name" value="iPhone 15 Pro Max"/>
             <column name="detail" valueJSONB='{"brand": "Apple", "color": "Natural Titanium", "storage": "256GB"}'/>

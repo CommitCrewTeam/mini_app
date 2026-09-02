@@ -7,10 +7,10 @@
             https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="payment_method_master_data" author="seed_service">
-        <comment>Seed master data for payment_methods table</comment>
         <preConditions onFail="HALT">
             <tableExists tableName="payment_methods"/>
         </preConditions>
+        <comment>Seed master data for payment_methods table</comment>
         <insert tableName="payment_methods">
             <column name="code" value="COD"/>
             <column name="name" value="Cash on Delivery"/>

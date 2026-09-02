@@ -7,10 +7,10 @@
             https://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
 
     <changeSet id="shipping_method_master_data" author="seed_service">
-        <comment>Seed master data for shipping_methods table</comment>
         <preConditions onFail="HALT">
             <tableExists tableName="shipping_methods"/>
         </preConditions>
+        <comment>Seed master data for shipping_methods table</comment>
         <insert tableName="shipping_methods">
             <column name="code" value="STANDARD"/>
             <column name="name" value="Standard Delivery"/>
