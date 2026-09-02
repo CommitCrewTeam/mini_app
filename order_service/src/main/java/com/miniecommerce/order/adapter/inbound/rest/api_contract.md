@@ -115,6 +115,132 @@ by the shared `GlobalExceptionHandler`): empty items, blank `customerId`,
 }
 ```
 
+## POST /api/orders/preview
+
+Preview an order before placing it. Returns, per line item, the enriched catalog
+data (name/detail/active/stock) fetched live from `inventory_service` via the
+batch endpoint `/api/phones/by-ids`, plus active shipping/payment options from
+`shipping_service` and `payment_service`. `PreviewOrderApplicationService`
+orchestrates the three downstream calls in parallel (CompletableFuture) and joins.
+
+Request body (`OrderRequest` — same shape as `POST /api/orders`; `shippingFee`
+is accepted but **ignored** for preview):
+
+```bash
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8083/api/orders/preview \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customerId": "c-1",
+    "shippingFee": 0,
+    "items": [
+      { "productId": "1", "quantity": 2, "unitPrice": 30000000 },
+      { "productId": "2", "quantity": 1, "unitPrice": 25000000 }
+    ]
+  }'
+```
+
+| Field             | Type    | Required | Note                                                   |
+|-------------------|---------|----------|--------------------------------------------------------|
+| customerId        | string  | yes      | must not be blank                                      |
+| shippingFee       | long    | ignored  | parsed by `OrderRequest`, not used in preview          |
+| items             | array   | yes      | at least 1 item required                               |
+| items[].productId | string  | yes      | must parse to a phone id (`Long`) to resolve inventory |
+| items[].quantity  | integer | yes      | must be > 0                                            |
+| items[].unitPrice | long    | yes      | money in VND, must be >= 0                             |
+
+### Success — 200 OK
+
+`detail` is the `JSONB` column of the `phones` row as a raw `Map`, `available =
+active && stock >= quantity`. `subtotal = SUM(quantity * unitPrice)`, and
+`totalAmount = subtotal` (no shipping fee applied in preview).
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": {
+    "customerId": "c-1",
+    "items": [
+      {
+        "productId": "1",
+        "quantity": 2,
+        "unitPrice": 30000000,
+        "name": "iPhone 15 Pro Max",
+        "detail": { "brand": "Apple", "color": "Natural Titanium", "storage": "256GB" },
+        "active": true,
+        "stock": 25,
+        "available": true
+      },
+      {
+        "productId": "2",
+        "quantity": 1,
+        "unitPrice": 25000000,
+        "name": "Samsung Galaxy S24 Ultra",
+        "detail": { "brand": "Samsung", "color": "Titanium Gray", "storage": "512GB" },
+        "active": true,
+        "stock": 18,
+        "available": true
+      }
+    ],
+    "shippingOptions": [
+      { "code": "STANDARD", "name": "Standard Delivery", "baseFee": 15000 },
+      { "code": "EXPRESS", "name": "Express Delivery", "baseFee": 30000 },
+      { "code": "SAME_DAY", "name": "Same Day Delivery", "baseFee": 45000 }
+    ],
+    "paymentOptions": [
+      { "code": "COD", "name": "Cash on Delivery" },
+      { "code": "VNPAY", "name": "VNPay" },
+      { "code": "MOMO", "name": "Momo E-Wallet" },
+      { "code": "VISA", "name": "Credit / Debit Card" }
+    ],
+    "subtotal": 85000000,
+    "totalAmount": 85000000
+  },
+  "timestamp": "2026-09-02T13:58:57.508+07:00"
+}
+```
+
+### Missing / inactive inventory — available=false
+
+If a `productId` does not resolve (unknown id or not parseable), the item
+responses with `null` name/detail, `active=false`, `stock=0`, `available=false`
+(`InventoryFeignAdapter` fills defaults); it is still included in the items list.
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": {
+    "customerId": "c-1",
+    "items": [
+      {
+        "productId": "XXX",
+        "quantity": 1,
+        "unitPrice": 1000000,
+        "name": null,
+        "detail": null,
+        "active": false,
+        "stock": 0,
+        "available": false
+      }
+    ],
+    "shippingOptions": [],
+    "paymentOptions": [],
+    "subtotal": 1000000,
+    "totalAmount": 1000000
+  },
+  "timestamp": "2026-09-02T13:58:57.508+07:00"
+}
+```
+
+### Invalid domain data — 400 Bad Request
+
+Empty `items` triggers the same domain check as place-order (`AppException` /
+`BAD_REQUEST`). Shipping/payment options are only populated when the
+downstream services are reachable and return active rows.
+
 ## Domain rules (OrderAggregateRoot)
 
 - State machine: `PENDING --confirm()--> CONFIRMED`,
@@ -127,9 +253,11 @@ by the shared `GlobalExceptionHandler`): empty items, blank `customerId`,
 ## Notes
 
 - Kafka topic: `app.kafka.topics.order-placed` (default `order.placed`).
-- Inventory stock verification and Customer communication are **out of scope**
-  for this iteration; the `InventoryPort`/`InventoryFeignAdapter`/`InventoryClient`
-  files remain for the next step but are not wired into the place-order flow.
+- **Preview** (`POST /api/orders/preview`) reads live data from
+  `inventory_service` (`GET /api/phones/by-ids`), `shipping_service`
+  (`GET /api/v1/shipping-methods`) and `payment_service`
+  (`GET /api/v1/payment-methods`) via Feign clients, run in parallel.
+  The place-order flow itself does **not** yet verify stock.
 - Domain Event and Outbox are not implemented yet; persistence **is** implemented
   via JPA (`OrderPersistenceAdapter` + `OrderEntity`/`OrderItemEntity`) with the
   schema managed by Liquibase (`db/changelog`).
