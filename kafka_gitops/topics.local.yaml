@@ -11,3 +11,5 @@ defaults:
 
 topics:
   - name: order.placed
+  - name: inventory.trukho
+
