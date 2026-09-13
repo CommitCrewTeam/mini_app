@@ -63,11 +63,11 @@ CREATE TABLE p1_orders (
 ## 3. API (inventory_service expose ra ngoài)
 
 ```
-POST   /p1/reservations              -- tạo hold 15 phút
-POST   /p1/reservations/:id/confirm  -- chuyển sang CONFIRMED (sau khi payment ok)
-DELETE /p1/reservations/:id          -- release sớm
-GET    /p1/reservations/:id          -- check status
-GET    /p1/inventory/:sku            -- check tồn kho
+POST   /inventory_service/p1/reservations              -- tạo hold 15 phút
+POST   /inventory_service/p1/reservations/:id/confirm  -- chuyển sang CONFIRMED (sau khi payment ok)
+DELETE /inventory_service/p1/reservations/:id          -- release sớm
+GET    /inventory_service/p1/reservations/:id          -- check status
+GET    /inventory_service/p1/inventory/:sku            -- check tồn kho
 ```
 
 Mọi request mutating (POST/DELETE) **bắt buộc** có header `Idempotency-Key`.
@@ -80,7 +80,7 @@ Lưu kết quả theo key trong 24h (Redis hoặc bảng riêng), retry thì tr�
 ### 4.1 Đồng bộ — lúc tạo order
 
 ```
-order_service --(REST/gRPC call)--> POST /p1/reservations (inventory_service)
+order_service --(REST/gRPC call)--> POST /inventory_service/p1/reservations (inventory_service)
 inventory_service --(trả về)--> { reservation_id, expires_at }
 order_service lưu reservation_id vào bảng p1_orders
 ```
@@ -96,7 +96,7 @@ order_service consume --> nếu order.status == CREATED --> update thành CANCEL
 
 ```
 order_service --(Kafka topic: order.paid)--> { reservation_id, order_id }
-inventory_service consume --> gọi nội bộ /p1/reservations/:id/confirm
+inventory_service consume --> gọi nội bộ /inventory_service/p1/reservations/:id/confirm
 ```
 
 ---

@@ -1,7 +1,7 @@
 # Phone API Contract
 
 Service: `inventory_service`
-Base URL: `http://localhost:8082/api/phones`
+Base URL: `http://localhost:8082/inventory_service/api/phones`
 Stack: Spring WebFlux + Spring Data R2DBC (reactive, `Flux`/`Mono` end-to-end)
 
 All responses are wrapped in the shared `ApiResponse<T>` (from the `common` module):
@@ -28,7 +28,7 @@ All responses are wrapped in the shared `ApiResponse<T>` (from the `common` modu
 List all phones.
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones
+curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/inventory_service/api/phones
 ```
 
 Response `200 OK` — `Mono<ApiResponse<List<Phone>>>`:
@@ -55,7 +55,7 @@ Response `200 OK` — `Mono<ApiResponse<List<Phone>>>`:
 Check the stock of a phone by id (returns only the `stock` field).
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones/1
+curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/inventory_service/api/phones/1
 ```
 
 The stock is fetched via a raw SQL query
@@ -93,7 +93,7 @@ If the id does not exist, the controller throws
 Create a phone.
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8082/api/phones \
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8082/inventory_service/api/phones \
   -H "Content-Type: application/json" \
   -d '{
     "name": "iPhone 15",

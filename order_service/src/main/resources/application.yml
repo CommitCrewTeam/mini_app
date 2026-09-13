@@ -1,5 +1,7 @@
 server:
   port: 8083
+  servlet:
+    context-path: /order_service
 
 spring:
   application:
@@ -22,11 +24,11 @@ spring:
 
 app:
   inventory:
-    url: ${INVENTORY_URL:http://localhost:8082}
+    url: ${INVENTORY_URL:http://localhost:8082/inventory_service}
   shipping:
-    url: ${SHIPPING_URL:http://localhost:8084}
+    url: ${SHIPPING_URL:http://localhost:8084/shipping_service}
   payment:
-    url: ${PAYMENT_URL:http://localhost:8088}
+    url: ${PAYMENT_URL:http://localhost:8088/payment_service}
   kafka:
     topics:
       order-placed: ${KAFKA_TOPIC_ORDER_PLACED:order.placed}

@@ -1,0 +1,41 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-p1-orders-table
+      author: codex
+      preConditions:
+        - not:
+            - tableExists:
+                tableName: p1_orders
+      changes:
+        - createTable:
+            tableName: p1_orders
+            columns:
+              - column:
+                  name: order_id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: reservation_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: user_id
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  defaultValue: CREATED
+                  constraints:
+                    nullable: false
+                    checkConstraint: "status IN ('CREATED','PAID','CANCELLED','FAILED')"
+              - column:
+                  name: created_at
+                  type: TIMESTAMP
+                  defaultValueComputed: NOW()
+                  constraints:
+                    nullable: false

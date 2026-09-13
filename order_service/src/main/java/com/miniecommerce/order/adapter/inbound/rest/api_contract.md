@@ -119,7 +119,7 @@ by the shared `GlobalExceptionHandler`): empty items, blank `customerId`,
 
 Preview an order before placing it. Returns, per line item, the enriched catalog
 data (name/detail/active/stock) fetched live from `inventory_service` via the
-batch endpoint `/api/phones/by-ids`, plus active shipping/payment options from
+batch endpoint `/inventory_service/api/phones/by-ids`, plus active shipping/payment options from
 `shipping_service` and `payment_service`. `PreviewOrderApplicationService`
 orchestrates the three downstream calls in parallel (CompletableFuture) and joins.
 
@@ -254,7 +254,7 @@ downstream services are reachable and return active rows.
 
 - Kafka topic: `app.kafka.topics.order-placed` (default `order.placed`).
 - **Preview** (`POST /api/orders/preview`) reads live data from
-  `inventory_service` (`GET /api/phones/by-ids`), `shipping_service`
+  `inventory_service` (`GET /inventory_service/api/phones/by-ids`), `shipping_service`
   (`GET /api/v1/shipping-methods`) and `payment_service`
   (`GET /api/v1/payment-methods`) via Feign clients, run in parallel.
   The place-order flow itself does **not** yet verify stock.

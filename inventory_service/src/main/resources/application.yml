@@ -4,6 +4,8 @@ server:
 spring:
   application:
     name: inventory_service
+  webflux:
+    base-path: /inventory_service
   r2dbc:
     url: r2dbc:postgresql://localhost:5432/inventory_service
     username: ecommerce_user
