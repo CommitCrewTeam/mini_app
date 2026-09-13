@@ -23,7 +23,7 @@ Giả định:
 
 ```sql
 -- Core: tồn kho
-CREATE TABLE inventory (
+CREATE TABLE p1_inventory (
     sku           VARCHAR(50) PRIMARY KEY,
     qty_total     INT NOT NULL,
     qty_avail     INT NOT NULL CHECK (qty_avail >= 0),
@@ -33,10 +33,10 @@ CREATE TABLE inventory (
 -- Bất biến: qty_total = qty_avail + qty_reserved
 
 -- Giữ chỗ
-CREATE TABLE reservations (
+CREATE TABLE p1_reservations (
     reservation_id  UUID PRIMARY KEY,
     user_id         BIGINT NOT NULL,
-    sku             VARCHAR(50) REFERENCES inventory(sku),
+    sku             VARCHAR(50) REFERENCES p1_inventory(sku),
     quantity        INT NOT NULL,
     status          VARCHAR(20) DEFAULT 'PENDING', -- PENDING, CONFIRMED, EXPIRED, RELEASED
     expires_at      TIMESTAMP NOT NULL,
@@ -49,7 +49,7 @@ CREATE TABLE reservations (
 ### `order_service` — sở hữu 1 bảng
 
 ```sql
-CREATE TABLE orders (
+CREATE TABLE p1_orders (
     order_id        UUID PRIMARY KEY,
     reservation_id  UUID NOT NULL,   -- KHÔNG FOREIGN KEY, khác DB
     user_id         BIGINT NOT NULL,
@@ -63,11 +63,11 @@ CREATE TABLE orders (
 ## 3. API (inventory_service expose ra ngoài)
 
 ```
-POST   /reservations              -- tạo hold 15 phút
-POST   /reservations/:id/confirm  -- chuyển sang CONFIRMED (sau khi payment ok)
-DELETE /reservations/:id          -- release sớm
-GET    /reservations/:id          -- check status
-GET    /inventory/:sku            -- check tồn kho
+POST   /p1/reservations              -- tạo hold 15 phút
+POST   /p1/reservations/:id/confirm  -- chuyển sang CONFIRMED (sau khi payment ok)
+DELETE /p1/reservations/:id          -- release sớm
+GET    /p1/reservations/:id          -- check status
+GET    /p1/inventory/:sku            -- check tồn kho
 ```
 
 Mọi request mutating (POST/DELETE) **bắt buộc** có header `Idempotency-Key`.
@@ -80,9 +80,9 @@ Lưu kết quả theo key trong 24h (Redis hoặc bảng riêng), retry thì tr�
 ### 4.1 Đồng bộ — lúc tạo order
 
 ```
-order_service --(REST/gRPC call)--> POST /reservations (inventory_service)
+order_service --(REST/gRPC call)--> POST /p1/reservations (inventory_service)
 inventory_service --(trả về)--> { reservation_id, expires_at }
-order_service lưu reservation_id vào bảng orders
+order_service lưu reservation_id vào bảng p1_orders
 ```
 
 ### 4.2 Bất đồng bộ — khi reservation hết hạn (qua Kafka)
@@ -96,7 +96,7 @@ order_service consume --> nếu order.status == CREATED --> update thành CANCEL
 
 ```
 order_service --(Kafka topic: order.paid)--> { reservation_id, order_id }
-inventory_service consume --> gọi nội bộ /reservations/:id/confirm
+inventory_service consume --> gọi nội bộ /p1/reservations/:id/confirm
 ```
 
 ---
@@ -106,7 +106,7 @@ inventory_service consume --> gọi nội bộ /reservations/:id/confirm
 ```sql
 -- Đọc: qty_avail = 10, version = 5
 
-UPDATE inventory
+UPDATE p1_inventory
 SET qty_avail = qty_avail - :qty, version = version + 1
 WHERE sku = :sku
   AND version = :version
@@ -148,7 +148,7 @@ Chạy mỗi 5 phút trong `inventory_service`:
 
 ```sql
 SELECT reservation_id, sku, quantity
-FROM reservations
+FROM p1_reservations
 WHERE expires_at < NOW() AND status = 'PENDING';
 ```
 
@@ -166,7 +166,7 @@ Index trên `expires_at` bắt buộc để query này rẻ ở scale lớn.
 
 ## 7. Roadmap implement (thứ tự nên làm)
 
-1. [ ] Tạo schema `inventory`, `reservations` (inventory_service) và `orders` (order_service)
+1. [ ] Tạo schema `p1_inventory`, `p1_reservations` (inventory_service) và `p1_orders` (order_service)
 2. [ ] Implement optimistic locking cho reserve (mục 5)
 3. [ ] Implement API 5 endpoint (mục 3) + idempotency key middleware
 4. [ ] Implement Redis sorted set worker cho expiry (mục 6.1)
