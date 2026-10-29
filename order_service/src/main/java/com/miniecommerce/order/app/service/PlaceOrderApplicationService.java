@@ -62,4 +62,6 @@ public class PlaceOrderApplicationService implements CreateOrderUseCase {
                 order.getStatus(),
                 order.getCreatedAt());
     }
+
+
 }
