@@ -41,7 +41,9 @@ public class OrderRestMapper {
                 order.totalAmount().getAmount(),
                 order.getStatus(),
                 order.getCreatedAt(),
-                order.getUpdatedAt());
+                order.getUpdatedAt(),
+                order.getConfirmationDeadline(),
+                order.getCancellationReason());
     }
 
     public OrderPreviewResponse toPreviewResponse(OrderPreview preview) {

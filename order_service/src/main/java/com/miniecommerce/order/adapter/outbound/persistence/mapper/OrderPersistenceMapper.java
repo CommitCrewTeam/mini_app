@@ -21,6 +21,9 @@ public class OrderPersistenceMapper {
         entity.setTotalAmount(order.totalAmount().getAmount());
         entity.setCreatedAt(order.getCreatedAt());
         entity.setUpdatedAt(order.getUpdatedAt());
+        entity.setConfirmationDeadline(order.getConfirmationDeadline());
+        entity.setCancellationReason(order.getCancellationReason());
+        entity.setVersion(order.getVersion());
         order.getItems().forEach(item -> {
             OrderItemEntity itemEntity = new OrderItemEntity();
             itemEntity.setOrder(entity);
@@ -44,6 +47,9 @@ public class OrderPersistenceMapper {
                 entity.getStatus(),
                 items,
                 entity.getCreatedAt(),
-                entity.getUpdatedAt());
+                entity.getUpdatedAt(),
+                entity.getConfirmationDeadline(),
+                entity.getCancellationReason(),
+                entity.getVersion());
     }
 }

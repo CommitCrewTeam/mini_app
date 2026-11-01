@@ -21,8 +21,27 @@ spring:
     open-in-view: false
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
+  quartz:
+    scheduler-name: order-service-cluster
+    job-store-type: jdbc
+    overwrite-existing-jobs: false
+    wait-for-jobs-to-complete-on-shutdown: true
+    jdbc:
+      # Use never on every instance after initial setup when testing clustering.
+      initialize-schema: ${QUARTZ_INITIALIZE_SCHEMA:always}
+    properties:
+      org.quartz.scheduler.instanceId: AUTO
+      org.quartz.jobStore.isClustered: true
+      org.quartz.jobStore.clusterCheckinInterval: 10000
+      org.quartz.jobStore.driverDelegateClass: org.quartz.impl.jdbcjobstore.PostgreSQLDelegate
+      org.quartz.jobStore.tablePrefix: QRTZ_
+      org.quartz.threadPool.threadCount: 2
 
 app:
+  order-expiration:
+    confirmation-timeout: ${ORDER_CONFIRMATION_TIMEOUT:30m}
+    cron: "${ORDER_EXPIRATION_CRON:0 * * * * ?}"
+    batch-size: ${ORDER_EXPIRATION_BATCH_SIZE:100}
   inventory:
     url: ${INVENTORY_URL:http://localhost:8082/inventory_service}
   shipping:

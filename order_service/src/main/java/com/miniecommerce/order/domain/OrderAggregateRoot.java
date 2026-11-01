@@ -4,6 +4,7 @@ import com.miniecommerce.common.exception.AppException;
 import com.miniecommerce.common.exception.ErrorCode;
 
 import java.time.Instant;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,6 +19,9 @@ public final class OrderAggregateRoot {
     private final Instant createdAt;
     private OrderStatus status;
     private Instant updatedAt;
+    private Instant confirmationDeadline;
+    private String cancellationReason;
+    private Long version;
 
     private OrderAggregateRoot(String id, String customerId, MoneyValue shippingFee, OrderStatus status,
                                List<OrderItem> items, Instant createdAt, Instant updatedAt) {
@@ -28,18 +32,28 @@ public final class OrderAggregateRoot {
         this.items = items;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.confirmationDeadline = createdAt.plus(Duration.ofMinutes(30));
     }
 
     public static OrderAggregateRoot create(String customerId, MoneyValue shippingFee) {
+        return create(customerId, shippingFee, Instant.now(), Duration.ofMinutes(30));
+    }
+
+    public static OrderAggregateRoot create(String customerId, MoneyValue shippingFee,
+                                             Instant now, Duration confirmationTimeout) {
+        if (confirmationTimeout.isZero() || confirmationTimeout.isNegative()) {
+            throw new IllegalArgumentException("confirmationTimeout must be positive");
+        }
         if (customerId == null || customerId.isBlank()) {
             throw new AppException(ErrorCode.BAD_REQUEST, "customerId must not be blank");
         }
         if (shippingFee == null) {
             throw new AppException(ErrorCode.BAD_REQUEST, "shippingFee must not be null");
         }
-        Instant now = Instant.now();
-        return new OrderAggregateRoot(UUID.randomUUID().toString(), customerId, shippingFee,
+        OrderAggregateRoot order = new OrderAggregateRoot(UUID.randomUUID().toString(), customerId, shippingFee,
                 OrderStatus.PENDING, new ArrayList<>(), now, now);
+        order.confirmationDeadline = now.plus(confirmationTimeout);
+        return order;
     }
 
     public static OrderAggregateRoot rehydrate(String id, String customerId, MoneyValue shippingFee,
@@ -53,6 +67,31 @@ public final class OrderAggregateRoot {
         items.add(new OrderItem(productId, quantity, unitPrice));
         touch();
     }
+
+    public static OrderAggregateRoot rehydrate(String id, String customerId, MoneyValue shippingFee,
+                                               OrderStatus status, List<OrderItem> items,
+                                               Instant createdAt, Instant updatedAt, Instant confirmationDeadline,
+                                               String cancellationReason, Long version) {
+        OrderAggregateRoot order = rehydrate(id, customerId, shippingFee, status, items, createdAt, updatedAt);
+        order.confirmationDeadline = confirmationDeadline;
+        order.cancellationReason = cancellationReason;
+        order.version = version;
+        return order;
+    }
+
+    public boolean expire(Instant now) {
+        if (status != OrderStatus.PENDING || now.isBefore(confirmationDeadline)) {
+            return false;
+        }
+        status = OrderStatus.CANCELLED;
+        cancellationReason = "CONFIRMATION_TIMEOUT";
+        updatedAt = now;
+        return true;
+    }
+
+    public Instant getConfirmationDeadline() { return confirmationDeadline; }
+    public String getCancellationReason() { return cancellationReason; }
+    public Long getVersion() { return version; }
 
     public void removeItem(String productId) {
         assertModifiable();

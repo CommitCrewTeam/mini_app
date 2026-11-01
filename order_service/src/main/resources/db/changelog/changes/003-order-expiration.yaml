@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-order-expiration
+      author: mini-ecommerce
+      changes:
+        - sql:
+            sql: |
+              ALTER TABLE orders ADD COLUMN confirmation_deadline TIMESTAMP WITH TIME ZONE;
+              UPDATE orders SET confirmation_deadline = (created_at AT TIME ZONE 'UTC') + INTERVAL '30 minutes';
+              ALTER TABLE orders ALTER COLUMN confirmation_deadline SET NOT NULL;
+              ALTER TABLE orders ADD COLUMN cancellation_reason VARCHAR(255);
+              ALTER TABLE orders ADD COLUMN version BIGINT NOT NULL DEFAULT 0;
+              CREATE INDEX idx_orders_expiration ON orders (status, confirmation_deadline, id);

@@ -13,7 +13,9 @@ public record OrderResponse(
         long totalAmount,
         OrderStatus status,
         Instant createdAt,
-        Instant updatedAt) {
+        Instant updatedAt,
+        Instant confirmationDeadline,
+        String cancellationReason) {
 
     public record ItemResponse(String productId, int quantity, long unitPrice) {
     }

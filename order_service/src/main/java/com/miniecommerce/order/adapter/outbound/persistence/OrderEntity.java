@@ -9,6 +9,7 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -39,6 +40,22 @@ public class OrderEntity {
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
+
+    @Column(name = "confirmation_deadline", nullable = false)
+    private Instant confirmationDeadline;
+
+    @Column(name = "cancellation_reason")
+    private String cancellationReason;
+
+    @Version
+    private Long version;
+
+    public Instant getConfirmationDeadline() { return confirmationDeadline; }
+    public void setConfirmationDeadline(Instant value) { confirmationDeadline = value; }
+    public String getCancellationReason() { return cancellationReason; }
+    public void setCancellationReason(String value) { cancellationReason = value; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long value) { version = value; }
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<OrderItemEntity> items = new ArrayList<>();

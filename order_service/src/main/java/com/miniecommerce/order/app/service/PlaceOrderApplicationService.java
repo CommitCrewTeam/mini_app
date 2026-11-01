@@ -15,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.time.Clock;
+import com.miniecommerce.order.app.config.OrderExpirationProperties;
 
 @Service
 public class PlaceOrderApplicationService implements CreateOrderUseCase {
@@ -22,20 +24,26 @@ public class PlaceOrderApplicationService implements CreateOrderUseCase {
     private final SaveOrderPort saveOrderPort;
     private final PublishOrderEventPort publishOrderEventPort;
     private final PlaceOrderDomainService placeOrderDomainService;
+    private final Clock clock;
+    private final OrderExpirationProperties expirationProperties;
 
     public PlaceOrderApplicationService(SaveOrderPort saveOrderPort,
                                         PublishOrderEventPort publishOrderEventPort,
-                                        PlaceOrderDomainService placeOrderDomainService) {
+                                        PlaceOrderDomainService placeOrderDomainService,
+                                        Clock clock, OrderExpirationProperties expirationProperties) {
         this.saveOrderPort = saveOrderPort;
         this.publishOrderEventPort = publishOrderEventPort;
         this.placeOrderDomainService = placeOrderDomainService;
+        this.clock = clock;
+        this.expirationProperties = expirationProperties;
     }
 
     @Override
     @Transactional
     public OrderAggregateRoot placeOrder(CreateOrderCommand command) {
         OrderAggregateRoot order = OrderAggregateRoot.create(
-                command.customerId(), MoneyValue.of(command.shippingFee()));
+                command.customerId(), MoneyValue.of(command.shippingFee()),
+                clock.instant(), expirationProperties.confirmationTimeout());
         command.items().forEach(item ->
                 order.addItem(item.productId(), item.quantity(), MoneyValue.of(item.unitPrice())));
 

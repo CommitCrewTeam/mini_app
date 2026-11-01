@@ -3,3 +3,5 @@ databaseChangeLog:
       file: db/changelog/changes/001-create-order-tables.yaml
   - include:
       file: db/changelog/changes/002-create-p1-orders-table.yaml
+  - include:
+      file: db/changelog/changes/003-order-expiration.yaml
