@@ -1,0 +1,29 @@
+databaseChangeLog:
+  - changeSet:
+      id: 006-seed-super-admin-role
+      author: tuan
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: 00000000-0000-0000-0000-000000000001
+              - column:
+                  name: code
+                  value: SUPER_ADMIN
+              - column:
+                  name: name
+                  value: Super Administrator
+              - column:
+                  name: description
+                  value: System administrator role.
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP

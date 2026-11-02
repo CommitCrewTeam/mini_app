@@ -14,6 +14,8 @@ java {
 dependencies {
     api platform('org.springframework.boot:spring-boot-dependencies:3.3.5')
     api 'org.springframework:spring-web'
+    api 'org.springframework:spring-context'
+    api 'org.springframework.security:spring-security-core'
     api 'com.fasterxml.jackson.core:jackson-databind'
     api 'io.github.openfeign:feign-core:13.14'
 

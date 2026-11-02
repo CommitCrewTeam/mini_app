@@ -8,6 +8,10 @@ allprojects {
     group = 'com.miniecommerce'
     version = '0.0.1-SNAPSHOT'
 
+    ext {
+        lombokVersion = '1.18.34'
+    }
+
     if (tasks.findByName('prepareKotlinBuildScriptModel') == null) {
         tasks.register('prepareKotlinBuildScriptModel') {
             description = 'No-op task for IDE Gradle/Kotlin model sync compatibility.'
@@ -22,6 +26,13 @@ subprojects {
         toolchain {
             languageVersion = JavaLanguageVersion.of(21)
         }
+    }
+
+    dependencies {
+        compileOnly "org.projectlombok:lombok:${lombokVersion}"
+        annotationProcessor "org.projectlombok:lombok:${lombokVersion}"
+        testCompileOnly "org.projectlombok:lombok:${lombokVersion}"
+        testAnnotationProcessor "org.projectlombok:lombok:${lombokVersion}"
     }
 
     tasks.withType(JavaCompile).configureEach {

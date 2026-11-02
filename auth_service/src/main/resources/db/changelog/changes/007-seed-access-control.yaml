@@ -1,0 +1,177 @@
+databaseChangeLog:
+  - changeSet:
+      id: 007-rename-super-admin-role
+      author: tuan
+      changes:
+        - update:
+            tableName: roles
+            columns:
+              - column:
+                  name: code
+                  value: ROLE_ADMIN
+              - column:
+                  name: name
+                  value: Quản trị viên tối cao
+              - column:
+                  name: description
+                  value: Chủ hệ thống, quản lý tất cả mọi thứ kể cả nhân viên.
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP
+            where: code = 'SUPER_ADMIN'
+
+  - changeSet:
+      id: 007-seed-roles-and-permissions
+      author: tuan
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: 00000000-0000-0000-0000-000000000002
+              - column:
+                  name: code
+                  value: ROLE_CUSTOMER
+              - column:
+                  name: name
+                  value: Khách hàng
+              - column:
+                  name: description
+                  value: Người mua hàng vãng lai hoặc thành viên.
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP
+        - insert:
+            tableName: roles
+            columns:
+              - column:
+                  name: id
+                  value: 00000000-0000-0000-0000-000000000003
+              - column:
+                  name: code
+                  value: ROLE_STAFF
+              - column:
+                  name: name
+                  value: Nhân viên kho / CSKH
+              - column:
+                  name: description
+                  value: Người hỗ trợ quản lý sản phẩm và xử lý đơn hàng.
+              - column:
+                  name: active
+                  valueBoolean: true
+              - column:
+                  name: created_at
+                  valueComputed: CURRENT_TIMESTAMP
+              - column:
+                  name: updated_at
+                  valueComputed: CURRENT_TIMESTAMP
+
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000101}
+              - column: {name: code, value: product:read}
+              - column: {name: name, value: Xem sản phẩm}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000102}
+              - column: {name: code, value: product:create}
+              - column: {name: name, value: Tạo sản phẩm}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000103}
+              - column: {name: code, value: product:update}
+              - column: {name: name, value: Cập nhật sản phẩm}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000104}
+              - column: {name: code, value: order:create}
+              - column: {name: name, value: Tự đặt hàng}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000105}
+              - column: {name: code, value: order:read}
+              - column: {name: name, value: Xem lịch sử đơn hàng}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000106}
+              - column: {name: code, value: order:update-status}
+              - column: {name: name, value: Cập nhật trạng thái đơn hàng}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000107}
+              - column: {name: code, value: category:manage}
+              - column: {name: name, value: Quản lý danh mục}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000108}
+              - column: {name: code, value: user:read}
+              - column: {name: name, value: Xem tài khoản hệ thống}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+        - insert:
+            tableName: permissions
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000109}
+              - column: {name: code, value: user:delete}
+              - column: {name: name, value: Xóa tài khoản hệ thống}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000002}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000101}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000002}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000104}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000002}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000105}}]}
+
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000003}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000101}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000003}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000102}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000003}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000103}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000003}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000105}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000003}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000106}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000003}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000107}}]}
+
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000101}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000102}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000103}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000104}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000105}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000106}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000107}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000108}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000001}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000109}}]}

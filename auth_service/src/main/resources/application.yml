@@ -1,0 +1,29 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: auth_service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/auth_service
+    username: ecommerce_user
+    password: ecommerce_password
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+security:
+  jwt:
+    # Must be at least 32 bytes for HS256. Override via JWT_SECRET in real environments.
+    secret: ${JWT_SECRET:mini-ecommerce-auth-dev-secret-key-change-me}
+    access-token-ttl: 15m
+  refresh-token:
+    ttl: 7d
+
+bootstrap:
+  super-admin:
+    username: superadmin
+    password: strongpass
