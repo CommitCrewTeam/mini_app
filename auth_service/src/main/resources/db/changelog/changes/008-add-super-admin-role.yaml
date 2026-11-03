@@ -1,0 +1,56 @@
+databaseChangeLog:
+  - changeSet:
+      id: 008-standardize-role-names
+      author: tuan
+      changes:
+        - update:
+            tableName: roles
+            columns:
+              - column: {name: name, value: Nhân viên}
+              - column: {name: description, value: Nhân viên kho hoặc chăm sóc khách hàng.}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+            where: code = 'ROLE_STAFF'
+        - update:
+            tableName: roles
+            columns:
+              - column: {name: name, value: Quản lý cửa hàng / Admin}
+              - column: {name: description, value: Quản lý cửa hàng và vận hành hệ thống.}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+            where: code = 'ROLE_ADMIN'
+
+  - changeSet:
+      id: 008-add-super-admin-role
+      author: tuan
+      changes:
+        - insert:
+            tableName: roles
+            columns:
+              - column: {name: id, value: 00000000-0000-0000-0000-000000000004}
+              - column: {name: code, value: ROLE_SUPER_ADMIN}
+              - column: {name: name, value: Chủ hệ thống / Super Admin}
+              - column: {name: description, value: Chủ hệ thống với toàn quyền quản trị.}
+              - column: {name: active, valueBoolean: true}
+              - column: {name: created_at, valueComputed: CURRENT_TIMESTAMP}
+              - column: {name: updated_at, valueComputed: CURRENT_TIMESTAMP}
+
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000101}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000102}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000103}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000104}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000105}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000106}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000107}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000108}}]}
+        - insert: {tableName: role_permissions, columns: [{column: {name: role_id, value: 00000000-0000-0000-0000-000000000004}}, {column: {name: permission_id, value: 00000000-0000-0000-0000-000000000109}}]}
+
+        - sql:
+            splitStatements: true
+            sql: |
+              DELETE FROM account_roles
+              WHERE role_id = '00000000-0000-0000-0000-000000000001'
+                AND account_id IN (SELECT id FROM auth_accounts WHERE username = 'superadmin');
+              INSERT INTO account_roles (role_id, account_id)
+              SELECT '00000000-0000-0000-0000-000000000004', id
+              FROM auth_accounts
+              WHERE username = 'superadmin'
+              ON CONFLICT DO NOTHING;

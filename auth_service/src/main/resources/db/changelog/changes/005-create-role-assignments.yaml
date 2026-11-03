@@ -1,0 +1,88 @@
+databaseChangeLog:
+  - changeSet:
+      id: 005-create-role-assignments
+      author: tuan
+      changes:
+        - createTable:
+            tableName: account_roles
+            columns:
+              - column:
+                  name: role_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: account_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            tableName: account_roles
+            columnNames: role_id, account_id
+            constraintName: pk_account_roles
+
+        - addForeignKeyConstraint:
+            baseTableName: account_roles
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_account_roles_role
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: account_roles
+            baseColumnNames: account_id
+            referencedTableName: auth_accounts
+            referencedColumnNames: id
+            constraintName: fk_account_roles_account
+            onDelete: CASCADE
+
+        - createIndex:
+            tableName: account_roles
+            indexName: idx_account_roles_account_id
+            columns:
+              - column:
+                  name: account_id
+
+        - createTable:
+            tableName: role_permissions
+            columns:
+              - column:
+                  name: role_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+              - column:
+                  name: permission_id
+                  type: uuid
+                  constraints:
+                    nullable: false
+
+        - addPrimaryKey:
+            tableName: role_permissions
+            columnNames: role_id, permission_id
+            constraintName: pk_role_permissions
+
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: role_id
+            referencedTableName: roles
+            referencedColumnNames: id
+            constraintName: fk_role_permissions_role
+            onDelete: CASCADE
+
+        - addForeignKeyConstraint:
+            baseTableName: role_permissions
+            baseColumnNames: permission_id
+            referencedTableName: permissions
+            referencedColumnNames: id
+            constraintName: fk_role_permissions_permission
+            onDelete: CASCADE
+
+        - createIndex:
+            tableName: role_permissions
+            indexName: idx_role_permissions_permission_id
+            columns:
+              - column:
+                  name: permission_id
