@@ -11,7 +11,8 @@ public enum ErrorCode {
     NOT_FOUND(HttpStatus.NOT_FOUND),
     CONFLICT(HttpStatus.CONFLICT),
     INTERNAL_ERROR(HttpStatus.INTERNAL_SERVER_ERROR),
-    BAD_GATEWAY(HttpStatus.BAD_GATEWAY);
+    BAD_GATEWAY(HttpStatus.BAD_GATEWAY),
+    SERVICE_UNAVAILABLE(HttpStatus.SERVICE_UNAVAILABLE);
 
     private final HttpStatus status;
 

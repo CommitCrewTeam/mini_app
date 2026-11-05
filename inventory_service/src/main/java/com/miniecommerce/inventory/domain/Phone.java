@@ -2,6 +2,7 @@ package com.miniecommerce.inventory.domain;
 
 import com.miniecommerce.common.exception.AppException;
 import com.miniecommerce.common.exception.ErrorCode;
+import com.miniecommerce.inventory.domain.enums.ImportMode;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +11,8 @@ import java.util.Map;
 public class Phone {
 
     private Long id;
-    private String name;
+    private Long version;
+    private String key;
     private Map<String, Object> detail;
     private boolean active;
     private int stock;
@@ -18,12 +20,57 @@ public class Phone {
     public Phone() {
     }
 
-    public Phone(Long id, String name, Map<String, Object> detail, boolean active, int stock) {
+    public Phone(Long id, String key, Map<String, Object> detail, boolean active, int stock) {
         this.id = id;
-        this.name = name;
+        this.key = key;
         this.detail = detail;
         this.active = active;
         this.stock = stock;
+    }
+
+    /** Imported phones start inactive until explicitly activated. */
+    public static Phone fromImport(String key, Map<String, Object> detail, int quantity) {
+        Phone phone = new Phone(null, key, detail, false, quantity);
+        phone.validate();
+        return phone;
+    }
+
+    public static Phone prepareImportChange(ImportMode mode, PhoneDraft draft, Phone snapshot) {
+        if (!mode.requiresExistingPhone()) {
+            return fromImport(draft.getKey(), draft.getDetail(), draft.getQuantity());
+        }
+        if (snapshot == null) {
+            throw new AppException(ErrorCode.NOT_FOUND, "Phone not found");
+        }
+        if (draft.getMatchedVersion() == null
+                || !draft.getMatchedVersion().equals(snapshot.getVersion())) {
+            throw new AppException(ErrorCode.CONFLICT, "Phone changed after approval validation");
+        }
+        // The snapshot was read for this transaction only, so change it in place.
+        // Keeping the same object also keeps the version that was read for the save to check.
+        switch (mode) {
+            case UPDATE -> snapshot.updateFromImport(draft.getDetail());
+            case RESTOCK -> snapshot.restock(draft.getQuantity());
+            case CREATE -> throw new IllegalStateException("CREATE was handled before loading a snapshot");
+        }
+        return snapshot;
+    }
+
+    /** Replace only the imported details. */
+    public void updateFromImport(Map<String, Object> detail) {
+        this.detail = detail;
+    }
+
+    /** Add stock without changing the phone's other information. */
+    public void restock(int quantity) {
+        requireNonNegativeQuantity(quantity);
+        this.stock = Math.addExact(this.stock, quantity);
+    }
+
+    private static void requireNonNegativeQuantity(int quantity) {
+        if (quantity < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Stock quantity must not be negative");
+        }
     }
 
     public Long getId() {
@@ -34,12 +81,20 @@ public class Phone {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public Long getVersion() {
+        return version;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public void setVersion(Long version) {
+        this.version = version;
+    }
+
+    public String getKey() {
+        return key;
+    }
+
+    public void setKey(String key) {
+        this.key = key;
     }
 
     public Map<String, Object> getDetail() {
@@ -72,8 +127,8 @@ public class Phone {
 
     public void validate() {
         List<String> violations = new ArrayList<>();
-        if (name == null || name.isBlank()) {
-            violations.add("name must not be blank");
+        if (key == null || key.isBlank()) {
+            violations.add("key must not be blank");
         }
         if (stock < 0) {
             violations.add("stock must not be negative");

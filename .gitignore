@@ -12,3 +12,5 @@ out/
 *.log
 
 .env
+data/phone-imports/
+**/data/phone-imports/

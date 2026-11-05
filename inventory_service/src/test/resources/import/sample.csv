@@ -1,0 +1,4 @@
+name,detail,active,stock
+iPhone 15,"{""color"":""black"",""storage"":""256GB""}",true,10
+Galaxy S24,"{""color"":""white""}",true,5
+Pixel 8,"{""color"":""blue""}",false,0

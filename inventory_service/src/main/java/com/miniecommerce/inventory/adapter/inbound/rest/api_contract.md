@@ -2,81 +2,99 @@
 
 Service: `inventory_service`
 Base URL: `http://localhost:8082/api/phones`
-Stack: Spring WebFlux + Spring Data R2DBC (reactive, `Flux`/`Mono` end-to-end)
 
-All responses are wrapped in the shared `ApiResponse<T>` (from the `common` module):
+## Endpoints
 
-```json
-{
-  "success": true,
-  "message": null,
-  "data": {
-    "id": 1,
-    "name": "iPhone 15",
-    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-    "active": true,
-    "stock": 10
-  },
-  "timestamp": 1724851200000
-}
-```
+These routes reflect `PhoneController` and `PhoneImportController`.
 
-`detail` is a dynamic JSON object (`Map<String, Object>` in the domain), persisted as PostgreSQL `JSONB`.
+| Controller | Method | Path | HTTP success |
+|---|---|---|---|
+| PhoneController | GET | /api/phones | 200 |
+| PhoneController | GET | /api/phones/by-ids?ids=1,2,3 | 200 |
+| PhoneController | GET | /api/phones/{id} | 200 |
+| PhoneController | POST | /api/phones | 200 |
+| PhoneImportController | POST | /api/phones/imports | 202 |
+| PhoneImportController | POST | /api/phones/imports/{importId}/validate | 202 |
+| PhoneImportController | POST | /api/phones/imports/{importId}/approve | 202 |
 
-## GET /api/phones
+Command blocks use Bash syntax and can be run with the Markdown Run action configured for Bash (for example, Git Bash or WSL). Run file-upload examples from the repository root.
 
-List all phones.
+## Response format
 
-```bash
-curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones
-```
-
-Response `200 OK` — `Mono<ApiResponse<List<Phone>>>`:
-
-```json
-{
-  "success": true,
-  "message": null,
-  "data": [
-    {
-      "id": 1,
-      "name": "iPhone 15",
-      "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-      "active": true,
-      "stock": 10
-    }
-  ],
-  "timestamp": 1724851200000
-}
-```
-
-## GET /api/phones/{id}
-
-Check the stock of a phone by id (returns only the `stock` field).
-
-```bash
-curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones/1
-```
-
-The stock is fetched via a raw SQL query
-(`SELECT stock FROM phones WHERE id = :id`) in `PhoneR2dbcRepository`.
-
-Response `200 OK` — `Mono<ApiResponse<Integer>>` (data is the stock quantity):
+Controller responses use the shared `ApiResponse<T>` envelope:
 
 ```json
 {
   "success": true,
   "code": "200",
   "message": null,
-  "data": 10,
-  "timestamp": "2026-08-28T13:49:51.829777400Z"
+  "data": null,
+  "timestamp": "2026-11-08T14:30:00Z"
 }
 ```
 
-If the id does not exist, the controller throws
-`AppException(ErrorCode.NOT_FOUND, "Phone not found")`; the shared
-`GlobalExceptionHandler` (from `common`) maps it to HTTP 404 and returns body
-`code: "NOT_FOUND"` with `data: null`.
+`timestamp` is an ISO-8601 timestamp. `code` is a string. Successful responses currently use body code `"200"`, including the import endpoint whose HTTP status is `202`.
+
+A phone response contains `id`, `key`, `detail`, `active`, `stock`, and the derived boolean `available` (`active && stock > 0`). `detail` is a JSON object persisted as PostgreSQL JSONB.
+
+## GET /api/phones
+
+List all phones. HTTP `200 OK`; `data` is an array (empty when no phones exist).
+
+```bash
+curl -i "http://localhost:8082/api/phones"
+```
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": [
+    {
+      "id": 1,
+      "key": "iPhone 16",
+      "detail": { "color": "black", "storage": "128GB" },
+      "active": true,
+      "stock": 25,
+      "available": true
+    }
+  ],
+  "timestamp": "2026-11-08T14:30:00Z"
+}
+```
+
+## GET /api/phones/by-ids
+
+Fetch phones for order preview. Required query parameter `ids`: a list of integer IDs.
+
+```bash
+curl -i "http://localhost:8082/api/phones/by-ids?ids=1,2,3"
+```
+
+HTTP `200 OK`; `data` is an array of phones using the same format as the list endpoint. The controller does not enforce that every requested ID exists or guarantee response ordering.
+
+## GET /api/phones/{id}
+
+Return the stock quantity for a phone ID.
+
+```bash
+curl -i "http://localhost:8082/api/phones/1"
+```
+
+HTTP `200 OK`:
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": 25,
+  "timestamp": "2026-11-08T14:30:00Z"
+}
+```
+
+If the phone does not exist, HTTP `404 Not Found`:
 
 ```json
 {
@@ -84,59 +102,54 @@ If the id does not exist, the controller throws
   "code": "NOT_FOUND",
   "message": "Phone not found",
   "data": null,
-  "timestamp": "2026-08-28T13:49:51.829777400Z"
+  "timestamp": "2026-11-08T14:30:00Z"
 }
 ```
 
 ## POST /api/phones
 
-Create a phone.
+Create a phone. Content-Type: `application/json`.
 
-```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8082/api/phones \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "iPhone 15",
-    "detail": {
-      "color": "black",
-      "storage": "256GB",
-      "ram": "8GB"
-    },
-    "active": true,
-    "stock": 10
-  }'
-```
+| Field | Type | Current behavior |
+|---|---|---|
+| key | string | Required; must not be blank |
+| detail | JSON object | Arbitrary attributes; no domain validation for this field |
+| active | boolean | Defaults to false when omitted |
+| stock | integer | Must be nonnegative; defaults to 0 when omitted |
 
-Request body (`PhoneRequest`):
-
-| Field   | Type                  | Required | Note                                  |
-|---------|-----------------------|----------|---------------------------------------|
-| name    | string                | yes      |                                       |
-| detail  | object (JSON)         | yes      | arbitrary JSON, stored as `JSONB`     |
-| active  | boolean               | yes      |                                       |
-| stock   | integer               | yes      |                                       |
-
-Response `200 OK` — `Mono<ApiResponse<Phone>>` with generated `id`:
+The ID is generated by the server. Example request body:
 
 ```json
 {
-  "success": true,
-  "message": "Phone created",
-  "data": {
-    "id": 1,
-    "name": "iPhone 15",
-    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-    "active": true,
-    "stock": 10
-  },
-  "timestamp": 1724851200000
+  "key": "iPhone 16",
+  "detail": { "color": "black", "storage": "128GB" },
+  "active": true,
+  "stock": 25
 }
 ```
 
-## Notes
+Run directly with an inline JSON body:
 
-- Prerequisites: PostgreSQL must be running and the `phones` table created by Liquibase
-  (`detail JSONB NOT NULL DEFAULT '{}'`, `active BOOLEAN NOT NULL DEFAULT true`,
-  `stock INTEGER NOT NULL DEFAULT 0`).
-- `id` is server-generated (BIGSERIAL); it must NOT be sent in the POST body.
-- The API is fully reactive; no JPA/Hibernate/`block()` is used.
+```bash
+curl -i -X POST "http://localhost:8082/api/phones" \
+  -H "Content-Type: application/json" \
+  --data-raw '{"key":"iPhone 16","detail":{"color":"black","storage":"128GB"},"active":true,"stock":25}'
+```
+
+HTTP `200 OK`; `message` is `"Phone created"` and `data` is the created phone with its generated ID.
+
+Invalid key or negative stock produces HTTP `400 Bad Request`, body code `"BAD_REQUEST"`, and a message beginning with `"Invalid Phone: "`.
+
+## POST /api/phones/imports
+
+The import API contract is maintained in [Phone Import API Contract](../../../../../../../../../docs/phone-import-api-contract.md).
+
+It covers upload, validate and approve endpoints, numeric import/job execution responses, CSV format, mode behavior, errors and asynchronous processing limits. Upload returns a database-generated Long import ID; validate and approve return numeric job execution IDs. All three endpoints return HTTP 202.
+
+## Runtime requirements
+
+PostgreSQL must be available and Liquibase migrations must complete before the API can accept requests. The import job also needs Spring Batch metadata tables and a writable upload directory (default `./data/phone-imports`, configurable through `PHONE_IMPORT_DIRECTORY`).
+
+Import IDs and draft IDs use database sequences (BIGINT/Java Long). Draft import_id references the numeric import ID. GET /api/phones/imports/{importId}/stat uses the same numeric ID.
+
+Fresh databases create the sequence-backed IDs directly in the table creation changelogs; no separate data migration is required.
