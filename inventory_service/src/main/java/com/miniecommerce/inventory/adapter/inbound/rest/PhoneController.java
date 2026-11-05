@@ -5,10 +5,7 @@ import com.miniecommerce.common.exception.ErrorCode;
 import com.miniecommerce.common.response.ApiResponse;
 import com.miniecommerce.inventory.adapter.inbound.rest.dto.PhoneRequest;
 import com.miniecommerce.inventory.adapter.inbound.rest.mapper.PhoneRestMapper;
-import com.miniecommerce.inventory.app.port.inbound.CreatePhoneUseCase;
-import com.miniecommerce.inventory.app.port.inbound.GetAllPhonesUseCase;
-import com.miniecommerce.inventory.app.port.inbound.GetItemsForOrderPreviewUseCase;
-import com.miniecommerce.inventory.app.port.inbound.GetPhoneStockUseCase;
+import com.miniecommerce.inventory.app.port.inbound.phone.PhoneUseCase;
 import com.miniecommerce.inventory.domain.Phone;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -25,41 +22,32 @@ import java.util.List;
 @RequestMapping("/api/phones")
 public class PhoneController {
 
-    private final GetAllPhonesUseCase getAllPhonesUseCase;
-    private final GetPhoneStockUseCase getPhoneStockUseCase;
-    private final GetItemsForOrderPreviewUseCase getItemsForOrderPreviewUseCase;
-    private final CreatePhoneUseCase createPhoneUseCase;
+    private final PhoneUseCase phoneUseCase;
     private final PhoneRestMapper phoneRestMapper;
 
-    public PhoneController(GetAllPhonesUseCase getAllPhonesUseCase,
-                           GetPhoneStockUseCase getPhoneStockUseCase,
-                           GetItemsForOrderPreviewUseCase getItemsForOrderPreviewUseCase,
-                           CreatePhoneUseCase createPhoneUseCase,
+    public PhoneController(PhoneUseCase phoneUseCase,
                            PhoneRestMapper phoneRestMapper) {
-        this.getAllPhonesUseCase = getAllPhonesUseCase;
-        this.getPhoneStockUseCase = getPhoneStockUseCase;
-        this.getItemsForOrderPreviewUseCase = getItemsForOrderPreviewUseCase;
-        this.createPhoneUseCase = createPhoneUseCase;
+        this.phoneUseCase = phoneUseCase;
         this.phoneRestMapper = phoneRestMapper;
     }
 
     @GetMapping
     public Mono<ApiResponse<List<Phone>>> getAllPhones() {
-        return getAllPhonesUseCase.getAllPhones()
+        return phoneUseCase.getAllPhones()
                 .collectList()
                 .map(ApiResponse::success);
     }
 
     @GetMapping("/by-ids")
     public Mono<ApiResponse<List<Phone>>> getItemsForOrderPreview(@RequestParam("ids") List<Long> ids) {
-        return getItemsForOrderPreviewUseCase.getItemsForOrderPreview(ids)
+        return phoneUseCase.getItemsForOrderPreview(ids)
                 .collectList()
                 .map(ApiResponse::success);
     }
 
     @GetMapping("/{id}")
     public Mono<ApiResponse<Integer>> getStock(@PathVariable Long id) {
-        return getPhoneStockUseCase.getStock(id)
+        return phoneUseCase.getStock(id)
                 .map(ApiResponse::success)
                 .switchIfEmpty(Mono.error(new AppException(
                         ErrorCode.NOT_FOUND,
@@ -69,7 +57,7 @@ public class PhoneController {
     @PostMapping
     public Mono<ApiResponse<Phone>> createPhone(@RequestBody PhoneRequest request) {
         Phone phone = phoneRestMapper.toPhone(request);
-        return createPhoneUseCase.createPhone(phone)
+        return phoneUseCase.createPhone(phone)
                 .map(created -> ApiResponse.success(created, "Phone created"));
     }
 }

@@ -1,0 +1,78 @@
+databaseChangeLog:
+  - changeSet:
+      id: 004-create-phone-draft
+      author: codex
+      changes:
+        - createTable:
+            tableName: phone_draft
+            columns:
+              - column:
+                  name: id
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: import_id
+                  type: UUID
+                  constraints:
+                    nullable: false
+              - column:
+                  name: row_number
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: key
+                  type: VARCHAR(255)
+              - column:
+                  name: detail
+                  type: JSONB
+              - column:
+                  name: quantity
+                  type: INTEGER
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: error_message
+                  type: TEXT
+              - column:
+                  name: update_key
+                  type: VARCHAR(255)
+              - column:
+                  name: matched_version
+                  type: BIGINT
+        - addForeignKeyConstraint:
+            baseTableName: phone_draft
+            baseColumnNames: import_id
+            referencedTableName: phone_import
+            referencedColumnNames: id
+            constraintName: fk_phone_draft_import
+        - addUniqueConstraint:
+            tableName: phone_draft
+            columnNames: import_id, row_number
+            constraintName: uk_phone_draft_row
+        - createIndex:
+            tableName: phone_draft
+            indexName: idx_phone_draft_status
+            columns:
+              - column:
+                  name: import_id
+              - column:
+                  name: status
+              - column:
+                  name: row_number
+        - createIndex:
+            tableName: phone_draft
+            indexName: idx_phone_draft_pending_cursor
+            columns:
+              - column:
+                  name: import_id
+              - column:
+                  name: status
+              - column:
+                  name: id

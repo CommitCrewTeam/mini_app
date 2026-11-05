@@ -2,81 +2,97 @@
 
 Service: `inventory_service`
 Base URL: `http://localhost:8082/api/phones`
-Stack: Spring WebFlux + Spring Data R2DBC (reactive, `Flux`/`Mono` end-to-end)
 
-All responses are wrapped in the shared `ApiResponse<T>` (from the `common` module):
+## Endpoints
 
-```json
-{
-  "success": true,
-  "message": null,
-  "data": {
-    "id": 1,
-    "name": "iPhone 15",
-    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-    "active": true,
-    "stock": 10
-  },
-  "timestamp": 1724851200000
-}
-```
+These routes reflect `PhoneController` and `PhoneImportController`.
 
-`detail` is a dynamic JSON object (`Map<String, Object>` in the domain), persisted as PostgreSQL `JSONB`.
+| Controller | Method | Path | HTTP success |
+|---|---|---|---|
+| PhoneController | GET | /api/phones | 200 |
+| PhoneController | GET | /api/phones/by-ids?ids=1,2,3 | 200 |
+| PhoneController | GET | /api/phones/{id} | 200 |
+| PhoneController | POST | /api/phones | 200 |
+| PhoneImportController | POST | /api/phones/imports | 202 |
 
-## GET /api/phones
+Command blocks use Bash syntax and can be run with the Markdown Run action configured for Bash (for example, Git Bash or WSL). Run file-upload examples from the repository root.
 
-List all phones.
+## Response format
 
-```bash
-curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones
-```
-
-Response `200 OK` — `Mono<ApiResponse<List<Phone>>>`:
-
-```json
-{
-  "success": true,
-  "message": null,
-  "data": [
-    {
-      "id": 1,
-      "name": "iPhone 15",
-      "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-      "active": true,
-      "stock": 10
-    }
-  ],
-  "timestamp": 1724851200000
-}
-```
-
-## GET /api/phones/{id}
-
-Check the stock of a phone by id (returns only the `stock` field).
-
-```bash
-curl -s -w "\nHTTP %{http_code}\n" http://localhost:8082/api/phones/1
-```
-
-The stock is fetched via a raw SQL query
-(`SELECT stock FROM phones WHERE id = :id`) in `PhoneR2dbcRepository`.
-
-Response `200 OK` — `Mono<ApiResponse<Integer>>` (data is the stock quantity):
+Controller responses use the shared `ApiResponse<T>` envelope:
 
 ```json
 {
   "success": true,
   "code": "200",
   "message": null,
-  "data": 10,
-  "timestamp": "2026-08-28T13:49:51.829777400Z"
+  "data": null,
+  "timestamp": "2026-11-08T14:30:00Z"
 }
 ```
 
-If the id does not exist, the controller throws
-`AppException(ErrorCode.NOT_FOUND, "Phone not found")`; the shared
-`GlobalExceptionHandler` (from `common`) maps it to HTTP 404 and returns body
-`code: "NOT_FOUND"` with `data: null`.
+`timestamp` is an ISO-8601 timestamp. `code` is a string. Successful responses currently use body code `"200"`, including the import endpoint whose HTTP status is `202`.
+
+A phone response contains `id`, `name`, `detail`, `active`, `stock`, and the derived boolean `available` (`active && stock > 0`). `detail` is a JSON object persisted as PostgreSQL JSONB.
+
+## GET /api/phones
+
+List all phones. HTTP `200 OK`; `data` is an array (empty when no phones exist).
+
+```bash
+curl -i "http://localhost:8082/api/phones"
+```
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": [
+    {
+      "id": 1,
+      "name": "iPhone 16",
+      "detail": { "color": "black", "storage": "128GB" },
+      "active": true,
+      "stock": 25,
+      "available": true
+    }
+  ],
+  "timestamp": "2026-11-08T14:30:00Z"
+}
+```
+
+## GET /api/phones/by-ids
+
+Fetch phones for order preview. Required query parameter `ids`: a list of integer IDs.
+
+```bash
+curl -i "http://localhost:8082/api/phones/by-ids?ids=1,2,3"
+```
+
+HTTP `200 OK`; `data` is an array of phones using the same format as the list endpoint. The controller does not enforce that every requested ID exists or guarantee response ordering.
+
+## GET /api/phones/{id}
+
+Return the stock quantity for a phone ID.
+
+```bash
+curl -i "http://localhost:8082/api/phones/1"
+```
+
+HTTP `200 OK`:
+
+```json
+{
+  "success": true,
+  "code": "200",
+  "message": null,
+  "data": 25,
+  "timestamp": "2026-11-08T14:30:00Z"
+}
+```
+
+If the phone does not exist, HTTP `404 Not Found`:
 
 ```json
 {
@@ -84,59 +100,137 @@ If the id does not exist, the controller throws
   "code": "NOT_FOUND",
   "message": "Phone not found",
   "data": null,
-  "timestamp": "2026-08-28T13:49:51.829777400Z"
+  "timestamp": "2026-11-08T14:30:00Z"
 }
 ```
 
 ## POST /api/phones
 
-Create a phone.
+Create a phone. Content-Type: `application/json`.
 
-```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8082/api/phones \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "iPhone 15",
-    "detail": {
-      "color": "black",
-      "storage": "256GB",
-      "ram": "8GB"
-    },
-    "active": true,
-    "stock": 10
-  }'
+| Field | Type | Current behavior |
+|---|---|---|
+| name | string | Required; must not be blank |
+| detail | JSON object | Arbitrary attributes; no domain validation for this field |
+| active | boolean | Defaults to false when omitted |
+| stock | integer | Must be nonnegative; defaults to 0 when omitted |
+
+The ID is generated by the server. Example request body:
+
+```json
+{
+  "name": "iPhone 16",
+  "detail": { "color": "black", "storage": "128GB" },
+  "active": true,
+  "stock": 25
+}
 ```
 
-Request body (`PhoneRequest`):
+Run directly with an inline JSON body:
 
-| Field   | Type                  | Required | Note                                  |
-|---------|-----------------------|----------|---------------------------------------|
-| name    | string                | yes      |                                       |
-| detail  | object (JSON)         | yes      | arbitrary JSON, stored as `JSONB`     |
-| active  | boolean               | yes      |                                       |
-| stock   | integer               | yes      |                                       |
+```bash
+curl -i -X POST "http://localhost:8082/api/phones" \
+  -H "Content-Type: application/json" \
+  --data-raw '{"name":"iPhone 16","detail":{"color":"black","storage":"128GB"},"active":true,"stock":25}'
+```
 
-Response `200 OK` — `Mono<ApiResponse<Phone>>` with generated `id`:
+HTTP `200 OK`; `message` is `"Phone created"` and `data` is the created phone with its generated ID.
+
+Invalid name or negative stock produces HTTP `400 Bad Request`, body code `"BAD_REQUEST"`, and a message beginning with `"Invalid Phone: "`.
+
+## POST /api/phones/imports
+
+Submit a CSV file for background processing. Content-Type: `multipart/form-data`.
+
+| Part | Type | Required | Rules |
+|---|---|---|---|
+| file | file | yes | Filename must end in .csv (case-insensitive); file must be nonempty |
+| mode | text | yes | Exactly APPEND, UPDATE or RESTOCK (case-sensitive) |
+
+Default upload limits from `application.yml`:
+
+- Application file limit: 20,971,520 bytes (20 MiB), configurable through `PHONE_IMPORT_MAX_BYTES`.
+- Multipart disk limit: 20 MB per part; maximum 2 parts.
+- Multipart in-memory threshold: 256 KB.
+
+Increasing the application limit alone does not increase the multipart limit.
+
+### CSV format
+
+Use UTF-8 and the following column order. The reader skips the first line as a header without validating its names; each data row must have four columns.
+
+```csv
+name,detail,active,stock
+iPhone 16,"{""color"":""black"",""storage"":""128GB""}",true,25
+Samsung Galaxy S25,"{""color"":""blue"",""storage"":""256GB""}",true,30
+```
+
+Quote JSON fields and escape embedded double quotes by doubling them.
+
+Bash example using the repository sample. Run from any directory inside this repository; the first command moves to the repository root so curl can find the CSV file:
+
+```bash
+cd "$(git rev-parse --show-toplevel)" && \
+curl -i -X POST "http://localhost:8082/api/phones/imports" \
+  -F "file=@inventory_service/docs/phones-example.csv;type=text/csv" \
+  -F "mode=APPEND"
+```
+
+Submit with UPDATE mode:
+
+```bash
+cd "$(git rev-parse --show-toplevel)" && \
+curl -i -X POST "http://localhost:8082/api/phones/imports" \
+  -F "file=@inventory_service/docs/phones-example.csv;type=text/csv" \
+  -F "mode=UPDATE"
+```
+
+If curl reports `(26) Failed to open/read local data from file/application`, check the local CSV path relative to your current directory. The commands above resolve this by moving to the repository root before uploading.
+
+Let curl generate the multipart Content-Type and boundary.
+
+### Accepted response
+
+HTTP `202 Accepted`:
 
 ```json
 {
   "success": true,
-  "message": "Phone created",
-  "data": {
-    "id": 1,
-    "name": "iPhone 15",
-    "detail": { "color": "black", "storage": "256GB", "ram": "8GB" },
-    "active": true,
-    "stock": 10
-  },
-  "timestamp": 1724851200000
+  "code": "200",
+  "message": "Phone import submitted",
+  "data": null,
+  "timestamp": "2026-11-08T14:30:00Z"
 }
 ```
 
-## Notes
+This acknowledges submission, not successful completion of CSV processing. The response does not include an import ID. No import-status or error-download endpoint is currently exposed.
 
-- Prerequisites: PostgreSQL must be running and the `phones` table created by Liquibase
-  (`detail JSONB NOT NULL DEFAULT '{}'`, `active BOOLEAN NOT NULL DEFAULT true`,
-  `stock INTEGER NOT NULL DEFAULT 0`).
-- `id` is server-generated (BIGSERIAL); it must NOT be sent in the POST body.
-- The API is fully reactive; no JPA/Hibernate/`block()` is used.
+### Current processing behavior
+
+- The job creates a pending import record and reads CSV rows into phone drafts in chunks of 500.
+- Invalid column parsing or a stock value that cannot be parsed as an integer marks the draft INVALID with an error message.
+- Successful parsing marks the draft PENDING for heavy validation. Invalid JSON detail also marks the draft INVALID.
+- Heavy validation uses virtual-thread workers (default 4), each processing up to 500 PENDING drafts at a time. A step-scoped SynchronizedItemReader protects reading and advancing an ID keyset cursor. It does not coordinate separate job executions or pods. Each Spring Batch item is one page of drafts, and the validation step uses chunk(1).
+- Each chunk looks up phone keys in one repository query. APPEND requires a new key; UPDATE and RESTOCK require an existing key. UPDATE stores updateKey and matchedVersion. RESTOCK leaves both unset.
+- Validation steps run sequentially within each chunk and skip INVALID rows. Rows that pass all steps become VALID, and each chunk is saved in its own transaction. An infrastructure error or operation timeout fails the step; in-flight chunks can finish, and already committed chunks remain saved. The configured timeout applies separately to each DB operation; future external validators must enforce their own client/request timeout. It is not a total page or job deadline.
+- The ingest step finishes before validation starts. Rows becoming PENDING behind the cursor need a subsequent validation pass. This job currently prevents automatic restart.
+- The job has no apply step: RESTOCK does not yet increment stock, and UPDATE does not yet update product information.
+- Consequently, submitting a CSV does not currently add or update phones returned by GET /api/phones.
+
+### Upload errors
+
+The following application validation errors return HTTP `400 Bad Request`, body code `"BAD_REQUEST"`, and `data: null`:
+
+| Condition | Message |
+|---|---|
+| Invalid mode | Mode must be APPEND, UPDATE or RESTOCK |
+| Filename without .csv suffix | Upload a .csv file |
+| Empty file or file above the application limit | CSV must be nonempty and at most 20971520 bytes |
+
+The size message uses the configured byte limit. Multipart parsing limits may reject a request before application validation; their response is not guaranteed to use the messages above. Missing parts and malformed requests have no dedicated mapping in the shared exception handler.
+
+Errors during background row processing are not returned in the already-issued HTTP response.
+
+## Runtime requirements
+
+PostgreSQL must be available and Liquibase migrations must complete before the API can accept requests. The import job also needs Spring Batch metadata tables and a writable upload directory (default `./data/phone-imports`, configurable through `PHONE_IMPORT_DIRECTORY`).

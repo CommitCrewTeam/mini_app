@@ -26,6 +26,30 @@ public class Phone {
         this.stock = stock;
     }
 
+    /** Imported phones start inactive until explicitly activated. */
+    public static Phone fromImport(String key, Map<String, Object> detail, int quantity) {
+        Phone phone = new Phone(null, key, detail, false, quantity);
+        phone.validate();
+        return phone;
+    }
+
+    /** Replace only the imported details. */
+    public void updateFromImport(Map<String, Object> detail) {
+        this.detail = detail;
+    }
+
+    /** Add stock without changing the phone's other information. */
+    public void restock(int quantity) {
+        requireNonNegativeQuantity(quantity);
+        this.stock = Math.addExact(this.stock, quantity);
+    }
+
+    private static void requireNonNegativeQuantity(int quantity) {
+        if (quantity < 0) {
+            throw new AppException(ErrorCode.BAD_REQUEST, "Stock quantity must not be negative");
+        }
+    }
+
     public Long getId() {
         return id;
     }

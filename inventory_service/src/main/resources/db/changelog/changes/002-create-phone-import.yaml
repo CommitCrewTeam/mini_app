@@ -1,0 +1,47 @@
+databaseChangeLog:
+  - changeSet:
+      id: 003-create-phone-import
+      author: codex
+      changes:
+        - createTable:
+            tableName: phone_import
+            columns:
+              - column:
+                  name: id
+                  type: UUID
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: status
+                  type: VARCHAR(20)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: mode
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: version
+                  type: BIGINT
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+              - column:
+                  name: message
+                  type: TEXT
+              - column:
+                  name: created_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+              - column:
+                  name: updated_at
+                  type: TIMESTAMP WITH TIME ZONE
+                  constraints:
+                    nullable: false
+        - sql:
+            sql: >-
+              CREATE UNIQUE INDEX uq_one_active_import ON phone_import ((1))
+              WHERE status NOT IN ('DONE', 'FAILED');

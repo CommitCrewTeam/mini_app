@@ -1,0 +1,77 @@
+package com.miniecommerce.inventory.adapter.outbound.persistence.phone;
+
+import io.r2dbc.postgresql.codec.Json;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
+import java.util.Locale;
+import org.springframework.data.relational.core.mapping.Table;
+
+@Table("phone")
+public class PhoneEntity {
+
+    @Id
+    private Long id;
+    private String name;
+    private String key;
+    @Version
+    private Long version;
+    private Json detail;
+    private boolean active;
+    private int stock;
+
+    public PhoneEntity() {
+    }
+
+    public PhoneEntity(Long id, String name, Json detail, boolean active, int stock) {
+        this.id = id;
+        this.name = name;
+        this.key = name == null ? null : name.trim().toLowerCase(Locale.ROOT);
+        this.detail = detail;
+        this.active = active;
+        this.stock = stock;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+        this.key = name == null ? null : name.trim().toLowerCase(Locale.ROOT);
+    }
+
+    public Json getDetail() {
+        return detail;
+    }
+
+    public void setDetail(Json detail) {
+        this.detail = detail;
+    }
+
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+
+    public int getStock() {
+        return stock;
+    }
+
+    public void setStock(int stock) {
+        this.stock = stock;
+    }
+    public String getKey() { return key; }
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
+}

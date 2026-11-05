@@ -19,7 +19,14 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-databind'
     api 'io.github.openfeign:feign-core:13.14'
 
+    // Optional infrastructure: consumers opt in with spring-boot-starter-batch.
+    compileOnly 'org.springframework.batch:spring-batch-core'
+    compileOnly 'org.springframework:spring-jdbc'
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.5'
+    testImplementation 'org.springframework.batch:spring-batch-core'
+    testImplementation 'org.mockito:mockito-core'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
 tasks.withType(JavaCompile).configureEach {
