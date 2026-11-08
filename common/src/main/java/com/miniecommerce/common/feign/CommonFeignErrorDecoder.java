@@ -21,17 +21,29 @@ public class CommonFeignErrorDecoder implements ErrorDecoder {
 
     @Override
     public Exception decode(String methodKey, Response response) {
+        ErrorCode fallbackCode = ErrorCode.fromStatus(response.status());
+        String fallbackMessage = "Call failed: " + methodKey + " (HTTP " + response.status() + ")";
+
+        if (response.body() == null) {
+            return new AppException(fallbackCode, fallbackMessage);
+        }
+
         try (InputStream body = response.body().asInputStream()) {
             ApiResponse<?> apiResponse = objectMapper.readValue(body, new TypeReference<ApiResponse<?>>() {});
+            if (apiResponse == null) {
+                return new AppException(fallbackCode, fallbackMessage);
+            }
+
+            String message = apiResponse.getMessage();
+            if (message == null || message.isBlank()) {
+                message = fallbackMessage;
+            }
+
             return new AppException(
-                    ErrorCode.from(apiResponse.getCode()),
-                    apiResponse.getMessage()
-            );
+                    ErrorCode.from(apiResponse.getCode(), fallbackCode),
+                    message);
         } catch (IOException e) {
-            return new AppException(
-                    ErrorCode.BAD_GATEWAY,
-                    "Call failed: " + methodKey
-            );
+            return new AppException(fallbackCode, fallbackMessage);
         }
     }
 }
