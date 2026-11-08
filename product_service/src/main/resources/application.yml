@@ -1,0 +1,14 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: product_service
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/product_service
+    username: ecommerce_user
+    password: ecommerce_password
+  data:
+    redis:
+      host: localhost
+      port: 6379
