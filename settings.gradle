@@ -26,4 +26,5 @@ include 'analytics_service'
 include 'user_service'
 include 'seed_service'
 include 'auth_service'
+include 'product_service'
 
