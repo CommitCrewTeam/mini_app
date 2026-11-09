@@ -21,6 +21,12 @@ dependencies {
     api 'com.fasterxml.jackson.core:jackson-databind'
     api 'io.github.openfeign:feign-core:13.14'
 
+    // Redisson - Redis client, distributed locks
+    api 'org.redisson:redisson:3.52.0'
+
+    // AOP - @Aspect, @Around (dùng cho annotation-based distributed lock)
+    api 'org.springframework.boot:spring-boot-starter-aop'
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.5'
 }
 

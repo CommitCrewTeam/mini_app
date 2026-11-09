@@ -1,0 +1,74 @@
+server:
+  port: 8080
+
+app:
+  api-prefix: /api/v1
+
+spring:
+  application:
+    name: api_gateway
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 3000
+        response-timeout: 5s
+      default-filters:
+        - StripPrefix=2
+      routes:
+        # auth_service
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8091}
+          predicates:
+            - Path=${app.api-prefix}/auth/**
+
+        # auth_service also owns role assignment: /api/v1/users/{userId}/roles
+        # Must be declared before the broader /api/v1/users/** route.
+        - id: auth-user-roles
+          uri: ${AUTH_SERVICE_URL:http://localhost:8091}
+          predicates:
+            - Path=${app.api-prefix}/users/*/roles
+
+        # user_service
+        - id: user-service
+          uri: ${USER_SERVICE_URL:http://localhost:8087}
+          predicates:
+            - Path=${app.api-prefix}/users/**
+
+        # order_service
+        - id: order-service
+          uri: ${ORDER_SERVICE_URL:http://localhost:8083}
+          predicates:
+            - Path=${app.api-prefix}/orders/**
+
+        # inventory_service
+        - id: inventory-service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+          predicates:
+            - Path=${app.api-prefix}/phones/**
+
+        # payment_service
+        - id: payment-service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:8088}
+          predicates:
+            - Path=${app.api-prefix}/payment-methods/**
+
+        # shipping_service
+        - id: shipping-service
+          uri: ${SHIPPING_SERVICE_URL:http://localhost:8084}
+          predicates:
+            - Path=${app.api-prefix}/shipping-methods/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    gateway:
+      enabled: true
+    health:
+      show-details: always
+
+logging:
+  level:
+    org.springframework.cloud.gateway: INFO

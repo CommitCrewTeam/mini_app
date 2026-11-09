@@ -1,1 +1,4 @@
 com.miniecommerce.common.response.GlobalExceptionHandler
+com.miniecommerce.common.redis.RedisConfig
+com.miniecommerce.common.redis.RedissonConfig
+com.miniecommerce.common.aspect.DistributedLockAspect

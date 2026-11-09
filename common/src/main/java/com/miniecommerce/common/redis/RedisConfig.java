@@ -61,6 +61,7 @@ public class RedisConfig {
         return new ReactiveStringRedisTemplate(factory);
     }
 
+    // config cache
     @Bean
     public RedisCacheManager cacheManager(RedisConnectionFactory factory) {
         RedisCacheWriter redisCacheWriter = RedisCacheWriter.nonLockingRedisCacheWriter(factory);
