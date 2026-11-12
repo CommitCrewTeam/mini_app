@@ -3,6 +3,7 @@ package com.miniecommerce.inventory.adapter.outbound.persistence.phone;
 import com.miniecommerce.inventory.adapter.outbound.mapper.PhoneImportPersistenceMapper;
 import com.miniecommerce.inventory.app.port.outbound.phone.PhoneImportRepositoryPort;
 import com.miniecommerce.inventory.domain.PhoneImport;
+import com.miniecommerce.inventory.domain.PhoneImportStatus;
 import java.util.UUID;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;
@@ -24,6 +25,13 @@ public class PhoneImportPersistenceAdapter implements PhoneImportRepositoryPort 
     @Override
     public Mono<PhoneImport> save(PhoneImport phoneImport) {
         return repository.save(mapper.toEntity(phoneImport)).map(mapper::toDomain);
+    }
+
+    @Override
+    public Mono<Boolean> compareAndSetStatus(UUID id, PhoneImportStatus expectedStatus,
+            Long expectedVersion, PhoneImportStatus nextStatus) {
+        return repository.compareAndSetStatus(id, expectedStatus.name(), expectedVersion, nextStatus.name())
+                .map(updatedRows -> updatedRows == 1);
     }
 
     @Override

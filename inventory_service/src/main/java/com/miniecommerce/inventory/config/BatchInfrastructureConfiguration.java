@@ -1,17 +1,20 @@
 package com.miniecommerce.inventory.config;
 
-import com.zaxxer.hikari.HikariDataSource;
 import com.miniecommerce.common.spring_batch_importing.BatchImportInfrastructure;
+import com.zaxxer.hikari.HikariDataSource;
+import io.r2dbc.spi.ConnectionFactory;
 import org.springframework.batch.core.launch.support.TaskExecutorJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
-import org.springframework.boot.autoconfigure.batch.BatchDataSource;
-import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.batch.BatchDataSource;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Import;
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
+import org.springframework.r2dbc.connection.R2dbcTransactionManager;
+import org.springframework.transaction.reactive.TransactionalOperator;
 
 @Configuration
 @Import(BatchImportInfrastructure.class)
@@ -44,4 +47,10 @@ public class BatchInfrastructureConfiguration {
         executor.setConcurrencyLimit(workers);
         return executor;
     }
+
+    @Bean
+    public TransactionalOperator inventoryTransactions(ConnectionFactory connectionFactory) {
+        return TransactionalOperator.create(new R2dbcTransactionManager(connectionFactory));
+    }
+
 }

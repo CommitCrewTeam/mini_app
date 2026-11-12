@@ -4,11 +4,10 @@ import com.miniecommerce.inventory.domain.PhoneDraftStatus;
 import com.miniecommerce.inventory.adapter.outbound.mapper.PhoneImportPersistenceMapper;
 import com.miniecommerce.inventory.app.port.outbound.phone.PhoneDraftRepositoryPort;
 import com.miniecommerce.inventory.domain.PhoneDraft;
-import io.r2dbc.spi.ConnectionFactory;
+import org.springframework.beans.factory.annotation.Qualifier;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.r2dbc.connection.R2dbcTransactionManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import reactor.core.publisher.Flux;
@@ -24,13 +23,11 @@ public class PhoneDraftPersistenceAdapter implements PhoneDraftRepositoryPort {
     public PhoneDraftPersistenceAdapter(
             PhoneDraftSpringDataRepository repository,
             PhoneImportPersistenceMapper mapper,
-            ConnectionFactory connectionFactory
+            @Qualifier("inventoryTransactions") TransactionalOperator transactions
     ) {
         this.repository = repository;
         this.mapper = mapper;
-        this.transactions = TransactionalOperator.create(
-                new R2dbcTransactionManager(connectionFactory)
-        );
+        this.transactions = transactions;
     }
 
     @Override

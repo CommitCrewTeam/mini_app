@@ -192,3 +192,53 @@ Trả `importId` (UUID) ra ngoài, không trả `jobExecutionId` của Spring Ba
 - Muốn truy vết thì thêm cột `created_by_import_id` (cho phép NULL) hoặc bảng audit. Không dùng nó để điều khiển nghiệp vụ.
 - Sau Apply phát sự kiện cho các phần khác của inventory (reindex, cache...), tốt nhất qua outbox. Từ đó import không còn liên quan.
 - Apply bằng SQL trực tiếp bỏ qua domain service của phone. Chấp nhận được vì rule duy nhất là key. Nếu sau này phone có thêm rule thì đưa vào V1/V2 hoặc cho Apply đi qua domain service.
+
+## 10. Phân tách code approval hiện tại
+
+### Quy tắc khi phát triển
+
+- Khi feature chưa ready, không tạo mới hoặc sửa test, trừ khi người dùng yêu cầu rõ ràng. Có thể kiểm tra compile để phát hiện lỗi code.
+- Không tạo thêm file khi không cần thiết. Ưu tiên dùng class/file có sẵn phù hợp với trách nhiệm; chỉ tách file mới khi thực sự cần giữ ranh giới nghiệp vụ và infrastructure.
+- Dùng bean khi cần Spring quản lý scope, lifecycle, proxy hoặc chia sẻ dependency. Object chỉ phục vụ nội bộ một job, không cần các cơ chế đó, ưu tiên factory method thường; không bắt buộc mọi thành phần infrastructure đều là bean. Việc khởi tạo và nối dependency nằm trong cấu hình, không lẫn vào nghiệp vụ.
+
+Áp dụng cho cấu hình approval:
+
+| Object | Cách tạo | Lý do |
+|---|---|---|
+| Listener, decider | Private factory method | Job giữ và gọi trực tiếp, dependency truyền qua tham số; không cần Spring scope/proxy/lifecycle. |
+| Processor | Method reference | Chuyển đổi dữ liệu bằng hàm không giữ state. |
+| Reader, writer | Bean `@StepScope` | Đọc job parameters khi step chạy; reader có cursor riêng theo step execution. |
+| Executor chạy job/chunk | Bean | Spring quản lý lifecycle, gọi `close()` khi hủy bean; không tự tạo executor rồi bỏ trách nhiệm đóng. Việc chờ task hoàn tất còn phụ thuộc cấu hình executor. |
+| Job launcher | Bean | Được inject vào launcher facade và cần callback khởi tạo `afterPropertiesSet()`. |
+| Job, step | Bean | Giữ cách nối dependency qua Spring hiện tại và các callback khởi tạo của Batch; không bỏ bean chỉ vì một nơi sử dụng. |
+| TransactionalOperator | Bean | Writer và persistence adapter dùng chung cấu hình transaction. |
+| Datasource | Bean | Binding cấu hình, nhận diện Batch datasource và đóng tài nguyên khi shutdown. |
+
+Số nơi sử dụng không phải tiêu chí duy nhất để quyết định bean. Factory method thường không cần `proxyBeanMethods = false` mới hoạt động: method không có `@Bean` không bị intercept như bean method. Object thường vẫn có thể được truyền mock dependency khi kiểm tra; không phải bean chỉ có nghĩa là không inject/override nó qua Spring container được.
+
+- `ApproveImportJob`: gọi Batch launcher, kiểm tra trạng thái import/draft, chuẩn bị phone, áp dụng APPEND/UPDATE/RESTOCK và chuyển trạng thái qua repository port. Không tách thêm approval service.
+- `ApproveImportJob.ApprovalConfiguration`: lớp cấu hình riêng ngay trong file `ApproveImportJob.java`. Reader/writer là bean có `@StepScope`; executor, step và job được Spring quản lý. Listener và decider được tạo bằng private factory method; processor dùng method reference trực tiếp. Job tạo một instance decider và dùng lại instance đó cho các nhánh flow. Reader phân trang trên toàn bộ draft, không lọc VALID khi các worker đang chuyển dòng sang APPLIED.
+- Processor dùng hàm nghiệp vụ không giữ state; writer, decider và listener nhận trực tiếp repository port cần dùng. Các bean không inject ngược `ApproveImportJob`; launcher nhận `Job` bình thường, không cần `@Lazy`. Các hàm nghiệp vụ trong cùng file nhận dependency qua tham số, không nhận `JobExecution`, transaction manager hoặc executor.
+- `BatchInfrastructureConfiguration`: cung cấp bean `inventoryTransactions` dùng chung cho writer và draft persistence adapter. Writer bọc thao tác ghi phone và cập nhật draft của một chunk trong cùng transaction R2DBC; Batch metadata dùng transaction manager riêng.
+
+Validation gate chạy sau validate: tất cả draft hợp lệ thì sang apply; còn dòng không hợp lệ thì kết thúc bằng `.end("BLOCKED")`: BatchStatus là COMPLETED, ExitStatus là BLOCKED. Listener chỉ dịch BatchStatus/ExitStatus sang `ApprovalOutcome`; hàm nghiệp vụ `statusAfter` ánh xạ BLOCKED → READY, DONE → DONE, FAILED → FAILED. Không truyền kết quả validation qua ExecutionContext nữa. Các thao tác reactive chỉ `.block()` ở điểm gọi đồng bộ của launcher và các callback Batch.
+
+- Vòng đời import đặt cạnh nhau: `claim` giành quyền approve, `release` trả READY khi launch lỗi, `complete` kết thúc theo outcome. Các bước trả/kết thúc dùng chung CAS trên version đã claim.
+- `Settings` là record trong cùng file, đăng ký bằng `@EnableConfigurationProperties`, bind prefix `app.phone-import.approval` và validate bằng `@Validated`, `@Min(1)`. Mặc định workers = 5, chunk-size = 500; reader và step dùng chung chunk-size. `launch-workers` vẫn thuộc cấu hình launcher riêng.
+- `PagedDraftReader` là class nội bộ cuối file; factory chỉ tạo và bọc `SynchronizedItemReader`. Cursor vẫn thuộc instance theo StepScope.
+- Apply gồm phần đọc dữ liệu (`loadChange`), hàm thuần chọn thay đổi (`selectChange`) và ghi (`executeChange`). `selectChange` nhận mode, dữ liệu phone và version; không gọi repository, không sửa object snapshot đầu vào. Kết quả `PhoneChange` chứa phone cần lưu và expectedVersion. Không tạo thêm strategy/service/file.
+
+### Transaction và concurrency đã áp dụng
+
+- Trạng thái implementation hiện tại là `APPROVING`. Khi approve, đọc import rồi CAS bằng `id + status = READY + version` để chuyển sang APPROVING và tăng version. Chỉ request thắng CAS được launch job; request thua nhận CONFLICT.
+- Version sau khi giành quyền approve được truyền vào job parameter `approvalVersion`. Listener và xử lý launch lỗi chỉ chuyển trạng thái khi import vẫn APPROVING và đúng version này. Callback cũ không được ghi đè trạng thái của lần approve mới. Nếu khôi phục trạng thái cũng lỗi, vẫn giữ lỗi launch gốc và đính kèm lỗi khôi phục.
+- UPDATE/RESTOCK yêu cầu `matchedVersion` khác null và khớp version hiện tại của phone. Lệnh save dùng chính `matchedVersion`; `@Version` trên persistence entity chặn thay đổi chen vào giữa lần đọc và lần ghi.
+- Writer dùng `Mono.defer` và bean `inventoryTransactions` để bao toàn bộ thao tác của chunk trong transaction R2DBC. `drafts.saveAll` tham gia transaction đang có qua propagation REQUIRED. JDBC transaction manager của Batch phục vụ metadata riêng, không thay transaction dữ liệu.
+- Lỗi ghi, draft không còn VALID hoặc version phone thay đổi làm rollback toàn bộ chunk và job chuyển FAILED. Những chunk đã commit vẫn được giữ. APPEND dùng ràng buộc UNIQUE của key; trùng key lúc ghi cũng làm chunk thất bại. Implementation này chưa có cơ chế bỏ qua riêng dòng xung đột như thiết kế ở mục 5.
+- Tên trạng thái flow và key job parameter được gom thành hằng số trong `ApproveImportJob`.
+
+Phạm vi hiện tại: CAS dùng version vừa đọc từ DB; API approve chưa nhận version của preview từ client. Validate khi approve vẫn resolve lại `matchedVersion`, nên kiểm tra lúc apply bảo vệ thay đổi sau lần validate đó; chưa triển khai cơ chế CONFLICT/SKIP/FORCE cho thay đổi kể từ preview. Các mục thiết kế phía trên mô tả cả những phần chưa triển khai này.
+
+Giới hạn hoàn tất trạng thái: Spring Batch bắt và log exception từ `afterJob`, không tự retry hay chuyển job thành FAILED. CAS trả false nghĩa là callback không còn quyền cập nhật; không được bỏ điều kiện CAS để ghi đè. Nếu DB lỗi khi hoàn tất, import có thể còn APPROVING dù Batch đã kết thúc. Retry/reconcile bền vững vẫn cần triển khai riêng; lần refactor sáu mục này chưa giải quyết cơ chế phục hồi đó.
+
+Kiểm tra trong lần sửa này: compile Java và rà soát diff; không tạo, sửa hoặc chạy test khi feature chưa ready. Chưa xác minh transaction/concurrency bằng chạy tích hợp trên DB.
