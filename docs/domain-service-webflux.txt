@@ -1,0 +1,37 @@
+Quy tắc dễ nhớ:
+
+Cần I/O hoặc repository mới biết (tồn tại không, trùng không): ở service.
+Chỉ cần nhìn state của chính aggregate: ở domain.
+Mấy điểm khác nên xem trong code
+.block() trong WebFlux. Nếu hàm này bị gọi trên thread của Netty/Reactor (parallel, reactor-http-nio), block() sẽ ném IllegalStateException. Nếu service này thuần blocking (gọi từ controller MVC hoặc thread khác) thì ổn. Nếu không, nên trả Mono<Long>, hoặc bọc bằng Schedulers.boundedElastic().
+Check-then-save không atomic. Hai request cùng lúc đều đọc status = READY, đều qua startValidation(), đều launch job. Cách xử lý:
+thêm @Version (optimistic lock) vào entity, request thứ hai sẽ lỗi khi save, hoặc
+dùng conditional update: UPDATE ... SET status='VALIDATING' WHERE id=? AND status='READY', kiểm tra affected rows = 1.
+Ngoài ra JobParameters nên đủ định danh (importId) để Spring Batch tự chặn JobExecutionAlreadyRunning.
+Catch bị che lỗi gốc. Nếu completeValidation(...) trong catch tự ném lỗi thì lỗi gốc của launcher.run mất. Nên:
+java
+} catch (Exception e) {
+    try { completeValidation(id, false, false); }
+    catch (Exception ex) { e.addSuppressed(ex); }
+    throw e;
+}
+throws Exception quá rộng. JobLauncher.run chỉ ném mấy exception cụ thể (JobExecutionAlreadyRunningException, JobRestartException, JobInstanceAlreadyCompleteException, JobParametersInvalidException). Nên bắt rồi map sang AppException, hoặc ít nhất đừng để throws Exception lọt ra tầng API.
+Launcher sync hay async? Nếu launcher là SyncTaskExecutor (mặc định) thì run chờ job xong mới return. Request sẽ treo cả quá trình validate, trong khi bạn chỉ trả execution.getId(). Muốn trả ngay thì cấu hình TaskExecutorJobLauncher với SimpleAsyncTaskExecutor/thread pool.
+
+Bạn muốn mình viết lại bản dùng conditional update hoặc @Version cho điểm số 2 không?
+
+boundedElastic là gì
+
+Schedulers.boundedElastic() là một thread pool của Reactor dành riêng cho việc chạy code blocking (JDBC, gọi file, .block(), thư viện sync...), để không làm nghẽn các thread non-blocking của WebFlux.
+
+Vì sao cần nó
+
+WebFlux chạy trên ít thread (thường bằng số core CPU): reactor-http-nio-*, parallel-*. Mấy thread này không được phép block. Nếu một request gọi code blocking trên đó, cả thread đứng im, các request khác trên thread đó bị treo theo. Vì vậy Reactor còn chủ động ném IllegalStateException khi bạn gọi .block() trên các thread này.
+
+boundedElastic là chỗ “cho phép block” an toàn.
+
+“Bounded elastic” nghĩa là gì
+Elastic: tạo thread mới khi cần, thread rảnh quá 60s thì bị thu hồi.
+Bounded: có trần, mặc định = 10 × số core thread, và queue tối đa 100.000 task. Vượt thì ném RejectedExecutionException.
+
+Khác với elastic() cũ (không giới hạn thread, có thể nổ tung máy), nên bản này an toàn hơn và đã thay thế bản cũ.

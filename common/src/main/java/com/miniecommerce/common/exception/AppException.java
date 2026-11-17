@@ -12,4 +12,9 @@ public class AppException extends RuntimeException {
     public ErrorCode getErrorCode() {
         return code;
     }
+
+    public AppException(ErrorCode code, String message, Throwable cause) {
+        super(message, cause);
+        this.code = code;
+    }
 }

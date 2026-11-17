@@ -1,10 +1,7 @@
 package com.miniecommerce.inventory.app.service;
 
-import com.miniecommerce.inventory.app.port.inbound.CreatePhoneUseCase;
-import com.miniecommerce.inventory.app.port.inbound.GetAllPhonesUseCase;
-import com.miniecommerce.inventory.app.port.inbound.GetItemsForOrderPreviewUseCase;
-import com.miniecommerce.inventory.app.port.inbound.GetPhoneStockUseCase;
-import com.miniecommerce.inventory.app.port.outbound.PhoneRepository;
+import com.miniecommerce.inventory.app.port.inbound.phone.PhoneUseCase;
+import com.miniecommerce.inventory.app.port.outbound.phone.PhoneRepositoryPort;
 import com.miniecommerce.inventory.domain.Phone;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -13,11 +10,11 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @Service
-public class PhoneService implements GetAllPhonesUseCase, CreatePhoneUseCase, GetPhoneStockUseCase, GetItemsForOrderPreviewUseCase {
+public class PhoneService implements PhoneUseCase {
 
-    private final PhoneRepository phoneRepository;
+    private final PhoneRepositoryPort phoneRepository;
 
-    public PhoneService(PhoneRepository phoneRepository) {
+    public PhoneService(PhoneRepositoryPort phoneRepository) {
         this.phoneRepository = phoneRepository;
     }
 
