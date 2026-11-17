@@ -5,3 +5,5 @@ databaseChangeLog:
       file: db/changelog/changes/002-create-phone-import.yaml
   - include:
       file: db/changelog/changes/003-create-phone-draft.yaml
+  - include:
+      file: db/changelog/changes/004-create-flash-sale-campaign.yaml

@@ -45,11 +45,11 @@ public abstract class PhoneDraftMapper {
         }
 
         try {
-            draft.setQuantity(Integer.valueOf(row.stock()));
+            draft.setQuantity(Integer.valueOf(row.quantity()));
             draft.setStatus(PhoneDraftStatus.PENDING);
         } catch (NumberFormatException e) {
             draft.setStatus(PhoneDraftStatus.INVALID);
-            draft.setErrorMessage("Cannot parse stock integer");
+            draft.setErrorMessage("Cannot parse quantity integer");
             return;
         }
 
