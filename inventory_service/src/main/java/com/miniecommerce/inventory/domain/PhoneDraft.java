@@ -12,6 +12,11 @@ import java.util.Map;
 public class PhoneDraft {
 
     private Long id;
+    /**
+     * Optimistic-lock version of the phone_draft row itself, used to detect the draft being
+     * modified between the approval reader and the approval writer. This is NOT the version of
+     * the Phone aggregate; that baseline lives in {@link #matchedVersion}.
+     */
     private Long version;
     private long rowNumber;
     private String key;
@@ -19,6 +24,11 @@ public class PhoneDraft {
     private Integer quantity;
     private PhoneDraftStatus status;
     private String errorMessage;
+    /**
+     * Phone.version observed when validation last matched this draft against the phone table.
+     * It is a point-in-time baseline, not a live value: approval re-reads the Phone snapshot and
+     * rejects the change if the phone has moved past this version in the meantime.
+     */
     private Long matchedVersion;
 
     public PhoneDraft() {
@@ -56,6 +66,8 @@ public class PhoneDraft {
             }
             return;
         }
+        // Re-validation always recomputes the Phone baseline; a value left over from a previous
+        // validation run must never survive into approval.
         matchedVersion = null;
         errorMessage = null;
         if (duplicate) {
@@ -69,6 +81,8 @@ public class PhoneDraft {
         } else if (mode != ImportMode.CREATE && match == null) {
             errorMessage = "Key does not exist in phone";
         } else if (match != null) {
+            // Capture the current Phone.version so approval can detect updates that happened
+            // after this validation and fail with a conflict instead of overwriting them.
             matchedVersion = match.version();
         }
         setStatus(errorMessage == null ? PhoneDraftStatus.VALID : PhoneDraftStatus.INVALID);
@@ -80,6 +94,12 @@ public class PhoneDraft {
         }
     }
 
+    /**
+     * Guards the draft row against concurrent edits during approval.
+     * {@code expectedVersion} is the {@link #version} read by the approval reader, so any writer
+     * that changed the draft row in between makes approval fail. The Phone-level check is
+     * separate and uses {@link #matchedVersion} in {@link Phone#prepareImportChange}.
+     */
     public void requireUnchangedForApproval(Long expectedVersion) {
         requireValidForApproval();
         if (expectedVersion == null || !expectedVersion.equals(version)) {

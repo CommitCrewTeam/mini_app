@@ -26,6 +26,9 @@ public abstract class PhoneDraftMapper {
     @Mapping(target = "quantity", ignore = true)
     @Mapping(target = "status", ignore = true)
     @Mapping(target = "errorMessage", ignore = true)
+    // matchedVersion is a validation result, not something the CSV row carries: it is set later
+    // by PhoneDraft.validateForImport from the current Phone.version. Mapping it from the source
+    // row would let external input forge the approval baseline.
     @Mapping(target = "matchedVersion", ignore = true)
     public abstract PhoneDraft toDraft(PhoneImportSourceRow row);
 

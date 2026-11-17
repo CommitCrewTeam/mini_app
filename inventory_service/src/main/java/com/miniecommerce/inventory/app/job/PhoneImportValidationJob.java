@@ -125,6 +125,8 @@ public class PhoneImportValidationJob {
             var duplicates = Objects.requireNonNull(phoneDraftRepository.findDuplicateKeys(importId, keys).block());
             var matches = Objects.requireNonNull(phoneRepository.findImportMatchesByKeys(keys)
                     .collectMap(PhoneImportMatch::key).block());
+            // Validation stamps each valid draft with the Phone.version it matched here. Approval
+            // later compares that snapshot with a freshly read Phone before writing.
             rows.forEach(row -> row.validateForImport(importMode,
                     duplicates.contains(row.getKey()), matches.get(row.getKey())));
             return rows;

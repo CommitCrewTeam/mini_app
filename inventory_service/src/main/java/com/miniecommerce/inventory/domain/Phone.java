@@ -11,6 +11,9 @@ import java.util.Map;
 public class Phone {
 
     private Long id;
+    /**
+     * Optimistic-lock version of the persisted Phone aggregate, populated when the row is read.
+     */
     private Long version;
     private String key;
     private Map<String, Object> detail;
@@ -35,6 +38,17 @@ public class Phone {
         return phone;
     }
 
+    /**
+     * Builds the Phone row to persist for one approved draft.
+     *
+     * <p>For UPDATE/RESTOCK {@code snapshot} is the Phone read inside the approval transaction,
+     * and the draft's {@code matchedVersion} (captured during validation) must still equal the
+     * snapshot's {@link #version}; otherwise the phone changed since validation and the approval
+     * is rejected with a conflict. The change is applied to the snapshot in place so the
+     * optimistic-lock version that was read is the same one the save checks and increments.</p>
+     *
+     * <p>For CREATE no snapshot exists and a brand-new inactive Phone is built from the draft.</p>
+     */
     public static Phone prepareImportChange(ImportMode mode, PhoneDraft draft, Phone snapshot) {
         if (!mode.requiresExistingPhone()) {
             return fromImport(draft.getKey(), draft.getDetail(), draft.getQuantity());

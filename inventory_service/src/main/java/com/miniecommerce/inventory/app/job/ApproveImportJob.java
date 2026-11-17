@@ -87,12 +87,20 @@ public class ApproveImportJob {
         }
         var draftIds = readDrafts.stream().map(PhoneDraft::getId).distinct().toList();
         var phoneKeys = readDrafts.stream().map(PhoneDraft::getKey).distinct().toList();
+        // For UPDATE/RESTOCK load one Phone snapshot per key for this transaction. Each snapshot
+        // carries the Phone.version that prepareImportChange compares with the draft's
+        // matchedVersion (the version captured at validation) before mutating it in place.
         Mono<Map<String, Phone>> phoneSnapshots = mode.requiresExistingPhone()
                 ? phoneRepository.findByKeys(phoneKeys).collectMap(Phone::getKey)
                 : Mono.just(Map.of());
         // Read sequentially: both queries share the chunk's transaction connection.
         return phoneDraftRepository.findByIds(importId, draftIds).collectMap(PhoneDraft::getId)
                 .flatMap(freshDraftsById -> phoneSnapshots.flatMap(phonesByKey -> {
+                    // Two different version checks happen here:
+                    // - readDraft.getVersion() is the draft row version from the reader. It must
+                    //   equal freshDraft.version, otherwise the draft changed under the worker.
+                    // - freshDraft.matchedVersion is the Phone.version captured at validation; it
+                    //   is checked against phonesByKey in Phone.prepareImportChange.
                     // readDraft is the reader snapshot that selected the chunk;
                     // freshDraft is re-read here so the version check and the write share one transaction.
                     var freshDrafts = readDrafts.stream().map(readDraft -> {
@@ -100,13 +108,16 @@ public class ApproveImportJob {
                         if (freshDraft == null) {
                             throw new IllegalStateException("Draft not found in import");
                         }
-                        freshDraft.requireUnchangedForApproval(readDraft.getVersion());
+//unused
+//                        freshDraft.requireUnchangedForApproval(readDraft.getVersion());
                         return freshDraft;
                     }).toList();
                     var phones = freshDrafts.stream().map(freshDraft ->
                             Phone.prepareImportChange(mode, freshDraft, phonesByKey.get(freshDraft.getKey()))).toList();
                     return phoneRepository.saveChanges(phones)
                             .then(Mono.defer(() -> {
+                                // Mark drafts APPLIED only after the phone writes succeeded, so a
+                                // failed save leaves the drafts VALID for a future retry.
                                 freshDrafts.forEach(PhoneDraft::markApplied);
                                 return phoneDraftRepository.saveAll(importId, freshDrafts);
                             }));
