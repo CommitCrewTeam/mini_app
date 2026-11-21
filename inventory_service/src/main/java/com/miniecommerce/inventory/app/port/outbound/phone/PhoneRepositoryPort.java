@@ -8,13 +8,11 @@ import reactor.core.publisher.Mono;
 
 public interface PhoneRepositoryPort {
 
-    Flux<Phone> findByKeys(List<String> keys);
 
     /** Insert when {@code id} is null; otherwise update only if the row still has this version. */
     Mono<Phone> save(Phone phone);
 
     /** Save a whole chunk sequentially; the first conflicting row stops it. */
-    Mono<Void> saveChanges(List<Phone> phones);
 
     Flux<Phone> findAll();
 
@@ -22,5 +20,4 @@ public interface PhoneRepositoryPort {
 
     Flux<Phone> findByIds(List<Long> ids);
 
-    Flux<PhoneImportMatch> findImportMatchesByKeys(List<String> keys);
 }

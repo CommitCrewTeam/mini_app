@@ -19,7 +19,7 @@ databaseChangeLog:
                     nullable: false
               - column:
                   name: status
-                  type: VARCHAR(20)
+                  type: VARCHAR(32)
                   constraints:
                     nullable: false
               - column:
@@ -34,7 +34,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
               - column:
-                  name: message
+                  name: error
                   type: TEXT
               - column:
                   name: created_at
@@ -46,7 +46,3 @@ databaseChangeLog:
                   type: TIMESTAMP WITH TIME ZONE
                   constraints:
                     nullable: false
-        - sql:
-            sql: >-
-              CREATE UNIQUE INDEX uq_one_active_import ON phone_import ((1))
-              WHERE status NOT IN ('DONE', 'FAILED');

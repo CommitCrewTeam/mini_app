@@ -13,6 +13,12 @@ public enum PhoneImportStatus {
     APPROVING,
     /** Approval completed; terminal state. */
     DONE,
-    /** Processing failed or validation blocked approval; terminal state. */
-    FAILED
+    /** CSV ingestion failed before the import became READY. */
+    INGESTION_FAILED,
+    /** Explicit validation failed, including invalid drafts or a failed job submission. */
+    VALIDATION_FAILED,
+    /** Approval failed during normal processing. */
+    APPROVAL_FAILED,
+    /** Approval was stopped because the validation gate found invalid drafts. */
+    APPROVAL_VALIDATED_FAILED
 }

@@ -38,13 +38,6 @@ app:
     directory: ${PHONE_IMPORT_DIRECTORY:./data/phone-imports}
     max-bytes: ${PHONE_IMPORT_MAX_BYTES:20971520}
     max-error-rows: ${PHONE_IMPORT_MAX_ERROR_ROWS:1000}
-    validation:
-      chunk-size: ${PHONE_IMPORT_VALIDATION_CHUNK_SIZE:500}
-      workers: ${PHONE_IMPORT_VALIDATION_WORKERS:4}
-    approval:
-      chunk-size: ${PHONE_IMPORT_APPROVAL_CHUNK_SIZE:500}
-      workers: ${PHONE_IMPORT_APPROVAL_WORKERS:5}
-      launch-workers: ${PHONE_IMPORT_APPROVAL_LAUNCH_WORKERS:5}
     datasource:
       jdbc-url: ${INVENTORY_BATCH_JDBC_URL:jdbc:postgresql://localhost:5432/inventory_service}
       username: ${INVENTORY_BATCH_DB_USER:ecommerce_user}

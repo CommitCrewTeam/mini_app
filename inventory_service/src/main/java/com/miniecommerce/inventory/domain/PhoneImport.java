@@ -1,11 +1,11 @@
 package com.miniecommerce.inventory.domain;
 
-import com.miniecommerce.common.exception.AppException;
-import com.miniecommerce.common.exception.ErrorCode;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStatusTransition;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStatuses;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
 import com.miniecommerce.inventory.domain.enums.PhoneImportStatus;
 import java.time.OffsetDateTime;
-import java.util.Objects;
+import java.util.List;
 
 public class PhoneImport {
 
@@ -13,7 +13,7 @@ public class PhoneImport {
     private PhoneImportStatus status;
     private ImportMode mode;
     private Long version;
-    private String message;
+    private String error;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
 
@@ -21,12 +21,12 @@ public class PhoneImport {
     }
 
     public PhoneImport(Long id, PhoneImportStatus status, ImportMode mode, Long version,
-            String message, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
+            String error, OffsetDateTime createdAt, OffsetDateTime updatedAt) {
         this.id = id;
         this.status = status;
         this.mode = mode;
         this.version = version;
-        this.message = message;
+        this.error = error;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
     }
@@ -34,6 +34,37 @@ public class PhoneImport {
     public static PhoneImport pending(ImportMode mode) {
         var now = OffsetDateTime.now();
         return new PhoneImport(null, PhoneImportStatus.PENDING, mode, null, null, now, now);
+    }
+
+    public static PhoneImportStatusTransition validationStartTransition() {
+        return new PhoneImportStatusTransition(
+                List.of(PhoneImportStatus.READY), PhoneImportStatus.VALIDATING);
+    }
+
+    public static PhoneImportStatusTransition approvalStartTransition() {
+        return new PhoneImportStatusTransition(
+                List.of(PhoneImportStatus.READY, PhoneImportStatus.VALIDATED), PhoneImportStatus.APPROVING);
+    }
+
+    public static PhoneImportStatuses ingestionResultStatuses() {
+        return new PhoneImportStatuses(
+                PhoneImportStatus.PENDING, PhoneImportStatus.READY, PhoneImportStatus.INGESTION_FAILED);
+    }
+
+    public static PhoneImportStatuses validationResultStatuses() {
+        return new PhoneImportStatuses(
+                PhoneImportStatus.VALIDATING, PhoneImportStatus.VALIDATED, PhoneImportStatus.VALIDATION_FAILED);
+    }
+
+    public static PhoneImportStatuses approvalResultStatuses() {
+        return new PhoneImportStatuses(
+                PhoneImportStatus.APPROVING, PhoneImportStatus.DONE, PhoneImportStatus.APPROVAL_FAILED);
+    }
+
+    public static PhoneImportStatuses approvalValidationFailedStatuses() {
+        return new PhoneImportStatuses(
+                PhoneImportStatus.APPROVING, PhoneImportStatus.DONE,
+                PhoneImportStatus.APPROVAL_VALIDATED_FAILED);
     }
 
     public Long getId() {
@@ -44,79 +75,11 @@ public class PhoneImport {
         this.id = id;
     }
 
-    public void startValidation() {
-        if (!canTransitionTo(status, PhoneImportStatus.VALIDATING)) {
-            throw new AppException(ErrorCode.CONFLICT, "Import is not ready");
-        }
-        transitionTo(PhoneImportStatus.VALIDATING);
-    }
-
-    public void completeValidation(boolean completed, boolean allValid) {
-        transitionTo(completed && allValid ? PhoneImportStatus.VALIDATED : PhoneImportStatus.FAILED);
-    }
-
-    public void submissionFailed() {
-        transitionTo(PhoneImportStatus.FAILED);
-    }
-
-    public void completeImport(boolean completed) {
-        transitionTo(completed ? PhoneImportStatus.READY : PhoneImportStatus.FAILED);
-    }
-
-    public void startApproval() {
-        if (!canTransitionTo(status, PhoneImportStatus.APPROVING)) {
-            throw new AppException(ErrorCode.CONFLICT, "Import is not ready");
-        }
-        transitionTo(PhoneImportStatus.APPROVING);
-    }
-
-    public static StatusChange completeApproval(Long approvalVersion, PhoneImportStatus next) {
-        return new StatusChange(PhoneImportStatus.APPROVING,
-                Objects.requireNonNull(approvalVersion, "Approval version is required"),
-                validateTransition(PhoneImportStatus.APPROVING, next), "Approval ownership changed");
-    }
-
-    /** Expected state and requested state for an atomic repository update. */
-    public record StatusChange(PhoneImportStatus expectedStatus, Long expectedVersion,
-            PhoneImportStatus nextStatus, String conflictMessage) {
-        public void requireApplied(boolean updated) {
-            if (!updated) {
-                throw new AppException(ErrorCode.CONFLICT, conflictMessage);
-            }
-        }
-    }
-
-    public void transitionTo(PhoneImportStatus next) {
-        status = validateTransition(status, next);
-        updatedAt = OffsetDateTime.now();
-    }
-
-    public static PhoneImportStatus validateTransition(PhoneImportStatus current, PhoneImportStatus next) {
-        if (!canTransitionTo(current, next)) {
-            throw new IllegalStateException("Cannot transition " + current + " to " + next);
-        }
-        return next;
-    }
-
-    public static boolean canTransitionTo(PhoneImportStatus current, PhoneImportStatus next) {
-        if (current == null || next == null) {
-            return false;
-        }
-        return switch (current) {
-            case PENDING -> next == PhoneImportStatus.READY || next == PhoneImportStatus.FAILED;
-            case READY -> next == PhoneImportStatus.VALIDATING || next == PhoneImportStatus.APPROVING;
-            case VALIDATING -> next == PhoneImportStatus.VALIDATED || next == PhoneImportStatus.FAILED;
-            case VALIDATED -> next == PhoneImportStatus.APPROVING;
-            case APPROVING -> next == PhoneImportStatus.DONE || next == PhoneImportStatus.FAILED;
-            case DONE, FAILED -> false;
-        };
-    }
-
     public PhoneImportStatus getStatus() {
         return status;
     }
 
-    // Used when constructing or restoring persisted state; business changes use transitionTo.
+    // Used when mapping persisted state.
     public void setStatus(PhoneImportStatus status) {
         this.status = status;
     }
@@ -137,12 +100,12 @@ public class PhoneImport {
         this.version = version;
     }
 
-    public String getMessage() {
-        return message;
+    public String getError() {
+        return error;
     }
 
-    public void setMessage(String message) {
-        this.message = message;
+    public void setError(String error) {
+        this.error = error;
     }
 
     public OffsetDateTime getCreatedAt() {

@@ -1,8 +1,5 @@
 package com.miniecommerce.inventory.domain;
 
-import com.miniecommerce.common.exception.AppException;
-import com.miniecommerce.common.exception.ErrorCode;
-
 import com.miniecommerce.inventory.domain.enums.ImportMode;
 import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportMatch;
@@ -91,19 +88,6 @@ public class PhoneDraft {
     private void requireValidForApproval() {
         if (status != PhoneDraftStatus.VALID) {
             throw new IllegalStateException("Draft is no longer valid after approval validation");
-        }
-    }
-
-    /**
-     * Guards the draft row against concurrent edits during approval.
-     * {@code expectedVersion} is the {@link #version} read by the approval reader, so any writer
-     * that changed the draft row in between makes approval fail. The Phone-level check is
-     * separate and uses {@link #matchedVersion} in {@link Phone#prepareImportChange}.
-     */
-    public void requireUnchangedForApproval(Long expectedVersion) {
-        requireValidForApproval();
-        if (expectedVersion == null || !expectedVersion.equals(version)) {
-            throw new AppException(ErrorCode.CONFLICT, "Draft changed after it was read for approval");
         }
     }
 
