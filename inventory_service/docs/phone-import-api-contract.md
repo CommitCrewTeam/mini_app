@@ -2,15 +2,15 @@
 
 Đối chiếu với code ngày 2026-11-14. Service: `inventory_service`.
 
-Base URL khi chạy local: `http://localhost:8082`.
+Base URL khi chạy local: `http://localhost:6004`.
 
 ## 1. Danh sách API
 
 | Method | Path | Request | HTTP thành công | `data` trả về |
 |---|---|---|---|---|
-| POST | `/api/phones/imports` | Multipart: `file`, `mode` | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
-| POST | `/api/phones/imports/{importId}/validate` | Không có body | 202 | `jobExecutionId`: integer/int64 |
-| POST | `/api/phones/imports/{importId}/approve` | Không có body | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
+| POST | `/api/v1/phones/imports` | Multipart: `file`, `mode` | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
+| POST | `/api/v1/phones/imports/{importId}/validate` | Không có body | 202 | `jobExecutionId`: integer/int64 |
+| POST | `/api/v1/phones/imports/{importId}/approve` | Không có body | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
 
 `202 Accepted` chỉ xác nhận đã gửi job, không xác nhận xử lý thành công. `importId` và `jobExecutionId` là hai loại ID khác nhau; path luôn dùng ID int64 của import.
 
@@ -30,7 +30,7 @@ Response là JSON theo `ApiResponse<T>`. `code` là string; response thành côn
 
 ## 3. Upload CSV
 
-`POST /api/phones/imports`
+`POST /api/v1/phones/imports`
 
 Content-Type: `multipart/form-data`. Để HTTP client tự tạo multipart boundary.
 
@@ -44,7 +44,7 @@ Giới hạn ứng dụng mặc định: **20,971,520 bytes (20 MiB)**, cấu h�
 Ví dụ PowerShell, chạy tại thư mục gốc repository:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE"
 ```
 
 HTTP `202`; response như mục 2, dùng `data.importId` để gọi validate/approve và xem `/stat`. Upload chạy ingest CSV và validation ở background; chưa ghi các draft vào bảng phone.
@@ -55,13 +55,13 @@ Approve dùng executor riêng với `app.phone-import.approval.launch-workers` (
 
 ## 4. Validate lại
 
-`POST /api/phones/imports/{importId}/validate`
+`POST /api/v1/phones/imports/{importId}/validate`
 
 Path parameter `importId`: ID int64, bắt buộc. Không có body. Import phải ở trạng thái `READY`.
 
 ```powershell
 $importId = 10
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$importId/validate"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$importId/validate"
 ```
 
 HTTP `202`:
@@ -80,13 +80,13 @@ Job kiểm tra lại các draft chưa `APPLIED`, gồm cả draft đã `VALID` h
 
 ## 5. Approve
 
-`POST /api/phones/imports/{importId}/approve`
+`POST /api/v1/phones/imports/{importId}/approve`
 
 Path parameter `importId`: ID int64, bắt buộc. Không có body. Import phải ở trạng thái `READY` hoặc `VALIDATED`.
 
 ```powershell
 $importId = 10
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$importId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$importId/approve"
 ```
 
 HTTP `202`:
@@ -193,7 +193,7 @@ Chạy các case thành công theo thứ tự CREATE → UPDATE → RESTOCK. Tr�
 File: [example.csv](example.csv).
 
 ```powershell
-$create = curl.exe -sS -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE" | ConvertFrom-Json
+$create = curl.exe -sS -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE" | ConvertFrom-Json
 $create
 $createImportId = $create.data.importId
 ```
@@ -201,13 +201,13 @@ $createImportId = $create.data.importId
 Upload thành công trả HTTP `202`, `success=true`, `data` chứa `importId` và `jobExecutionId`. Kiểm tra `/stat` đến khi import `READY`, rồi chạy:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$createImportId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$createImportId/approve"
 ```
 
 Approve trả HTTP `202` và job execution ID. Sau khi import `DONE`, kiểm tra kết quả:
 
 ```powershell
-curl.exe -i "http://localhost:8082/api/phones"
+curl.exe -i "http://localhost:6004/api/v1/phones"
 ```
 
 Mong đợi có `iphone 15` stock `10`, `galaxy s24` stock `5`, `pixel 8` stock `0`; detail tương ứng CSV. Cả ba phone có `active=false`.
@@ -217,7 +217,7 @@ Mong đợi có `iphone 15` stock `10`, `galaxy s24` stock `5`, `pixel 8` stock 
 File: [example-update.csv](example-update.csv). Dùng cùng ba key đã tạo ở case 1. `quantity` trong file cố ý là `999` để minh họa cột này không được dùng để cập nhật phone trong mode UPDATE.
 
 ```powershell
-$update = curl.exe -sS -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example-update.csv;type=text/csv" -F "mode=UPDATE" | ConvertFrom-Json
+$update = curl.exe -sS -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example-update.csv;type=text/csv" -F "mode=UPDATE" | ConvertFrom-Json
 $update
 $updateImportId = $update.data.importId
 ```
@@ -225,23 +225,23 @@ $updateImportId = $update.data.importId
 Sau khi import `READY`, có thể gọi validate riêng để kiểm thử API này:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$updateImportId/validate"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$updateImportId/validate"
 ```
 
 Validate trả HTTP `202` và job execution ID. Chờ import tới `VALIDATED` rồi approve:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$updateImportId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$updateImportId/approve"
 ```
 
-Sau khi `DONE`, gọi `GET /api/phones`. Mong đợi detail được thay bằng object trong file UPDATE, stock vẫn lần lượt `10`, `5`, `0`; active vẫn `false`. UPDATE thay toàn bộ object detail, không merge từng thuộc tính.
+Sau khi `DONE`, gọi `GET /api/v1/phones`. Mong đợi detail được thay bằng object trong file UPDATE, stock vẫn lần lượt `10`, `5`, `0`; active vẫn `false`. UPDATE thay toàn bộ object detail, không merge từng thuộc tính.
 
 ### Case 3: RESTOCK — cộng tồn kho
 
 File: [example-restock.csv](example-restock.csv). Số lượng cộng lần lượt là `3`, `2`, `1`; detail dùng `{}` vì vẫn phải parse được JSON object.
 
 ```powershell
-$restock = curl.exe -sS -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example-restock.csv;type=text/csv" -F "mode=RESTOCK" | ConvertFrom-Json
+$restock = curl.exe -sS -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example-restock.csv;type=text/csv" -F "mode=RESTOCK" | ConvertFrom-Json
 $restock
 $restockImportId = $restock.data.importId
 ```
@@ -249,10 +249,10 @@ $restockImportId = $restock.data.importId
 Chờ import `READY`, rồi chạy:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$restockImportId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$restockImportId/approve"
 ```
 
-Sau khi `DONE`, gọi `GET /api/phones`. Mong đợi stock lần lượt `13`, `7`, `1`; detail giữ kết quả case UPDATE, active vẫn `false`.
+Sau khi `DONE`, gọi `GET /api/v1/phones`. Mong đợi stock lần lượt `13`, `7`, `1`; detail giữ kết quả case UPDATE, active vẫn `false`.
 
 ### Case lỗi theo mode
 
@@ -272,7 +272,7 @@ Với các case draft INVALID: gọi approve khi READY vẫn có thể nhận HT
 Ví dụ kiểm tra mode sai, không tạo import:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=create"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=create"
 ```
 
 ## 10. Nguồn đối chiếu

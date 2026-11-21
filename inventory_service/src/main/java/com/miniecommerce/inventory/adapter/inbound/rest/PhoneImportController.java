@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 
 @RestController
-@RequestMapping("/api/phones/imports")
+@RequestMapping("/api/v1/phones/imports")
 public class PhoneImportController {
     private final PhoneImportUseCase phoneImportUseCase;
 

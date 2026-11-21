@@ -1,0 +1,66 @@
+# Served by config_service for spring.application.name=api_gateway.
+server:
+  port: 6002
+
+spring:
+  cloud:
+    gateway:
+      httpclient:
+        connect-timeout: 3000
+        response-timeout: 120s
+      default-filters:
+        - StripPrefix=1
+      routes:
+        - id: auth_service
+          uri: ${AUTH_SERVICE_URL:http://localhost:6003}
+          predicates:
+            - Path=/auth_service/api/v1/**
+        - id: inventory_service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:6004}
+          predicates:
+            - Path=/inventory_service/api/v1/**
+        - id: order_service
+          uri: ${ORDER_SERVICE_URL:http://localhost:6005}
+          predicates:
+            - Path=/order_service/api/v1/**
+        - id: payment_service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:6006}
+          predicates:
+            - Path=/payment_service/api/v1/**
+        - id: shipping_service
+          uri: ${SHIPPING_SERVICE_URL:http://localhost:6007}
+          predicates:
+            - Path=/shipping_service/api/v1/**
+        - id: product_service
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:6008}
+          predicates:
+            - Path=/product_service/api/v1/**
+        - id: user_service
+          uri: ${USER_SERVICE_URL:http://localhost:6009}
+          predicates:
+            - Path=/user_service/api/v1/**
+        - id: plan_service
+          uri: ${PLAN_SERVICE_URL:http://localhost:6010}
+          predicates:
+            - Path=/plan_service/api/v1/**
+        - id: pricing_service
+          uri: ${PRICING_SERVICE_URL:http://localhost:6011}
+          predicates:
+            - Path=/pricing_service/api/v1/**
+        - id: notification_service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:6012}
+          predicates:
+            - Path=/notification_service/api/v1/**
+        - id: analytics_service
+          uri: ${ANALYTICS_SERVICE_URL:http://localhost:6013}
+          predicates:
+            - Path=/analytics_service/api/v1/**
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+  endpoint:
+    gateway:
+      enabled: true

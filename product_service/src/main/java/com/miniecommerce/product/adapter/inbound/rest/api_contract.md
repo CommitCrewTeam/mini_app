@@ -2,7 +2,7 @@
 
 Controller: `ProductCacheController`  
 Service: `product_service`  
-Base URL: `http://localhost:8085/api/v1/cache-demo/products`
+Base URL: `http://localhost:6008/api/v1/cache-demo/products`
 
 Các lệnh dưới đây chạy trực tiếp trong Bash/Git Bash/WSL, không cần khai báo biến hay cài `jq`. Khởi động service và Redis theo cấu hình ứng dụng trước khi gọi. Controller không khai báo yêu cầu token.
 
@@ -49,7 +49,7 @@ Dữ liệu demo nằm trong `MOCK_DATABASE` (bộ nhớ của service), có s�
 
 ```bash
 curl -sS -w '\nHTTP %{http_code}\n' \
-  'http://localhost:8085/api/v1/cache-demo/products/101'
+  'http://localhost:6008/api/v1/cache-demo/products/101'
 ```
 
 Response HTTP 200:
@@ -77,7 +77,7 @@ Không tìm thấy sản phẩm (áp dụng cả GET benchmark):
 
 ```bash
 curl -sS -w '\nHTTP %{http_code}\n' \
-  'http://localhost:8085/api/v1/cache-demo/products/999999'
+  'http://localhost:6008/api/v1/cache-demo/products/999999'
 ```
 
 Response **HTTP 200**, body báo lỗi:
@@ -96,7 +96,7 @@ Response **HTTP 200**, body báo lỗi:
 
 ```bash
 curl -sS -w '\nHTTP %{http_code}\n' \
-  'http://localhost:8085/api/v1/cache-demo/products/101/benchmark'
+  'http://localhost:6008/api/v1/cache-demo/products/101/benchmark'
 ```
 
 Response HTTP 200, ví dụ Cache MISS:
@@ -139,15 +139,15 @@ Response HTTP 200, ví dụ Cache MISS:
 ```bash
 # Xóa cache trước khi đo; giữ nguyên dữ liệu sản phẩm.
 curl -sS -w '\nHTTP %{http_code}\n' -X DELETE \
-  'http://localhost:8085/api/v1/cache-demo/products/clear-all'
+  'http://localhost:6008/api/v1/cache-demo/products/clear-all'
 
 # Lần 1: dự kiến Cache MISS.
 curl -sS -w '\nHTTP %{http_code}\n' \
-  'http://localhost:8085/api/v1/cache-demo/products/101/benchmark'
+  'http://localhost:6008/api/v1/cache-demo/products/101/benchmark'
 
 # Lần 2: dự kiến Cache HIT.
 curl -sS -w '\nHTTP %{http_code}\n' \
-  'http://localhost:8085/api/v1/cache-demo/products/101/benchmark'
+  'http://localhost:6008/api/v1/cache-demo/products/101/benchmark'
 ```
 
 ## 3. PUT /{id} — Cập nhật sản phẩm và cache
@@ -156,7 +156,7 @@ Request body: JSON tương ứng `ProductCacheResponse`. Gửi các trường ng
 
 ```bash
 curl -sS -w '\nHTTP %{http_code}\n' -X PUT \
-  'http://localhost:8085/api/v1/cache-demo/products/101' \
+  'http://localhost:6008/api/v1/cache-demo/products/101' \
   -H 'Content-Type: application/json' \
   --data-raw '{
     "name": "MacBook Pro M3 Max 16-inch",
@@ -193,7 +193,7 @@ Gọi GET hoặc benchmark sau PUT sẽ đọc dữ liệu vừa cập nhật tr
 
 ```bash
 curl -sS -w '\nHTTP %{http_code}\n' -X DELETE \
-  'http://localhost:8085/api/v1/cache-demo/products/101'
+  'http://localhost:6008/api/v1/cache-demo/products/101'
 ```
 
 Response HTTP 200:
@@ -214,7 +214,7 @@ ID không tồn tại vẫn trả thành công. Sau khi xóa, GET ID đó trả 
 
 ```bash
 curl -sS -w '\nHTTP %{http_code}\n' -X DELETE \
-  'http://localhost:8085/api/v1/cache-demo/products/clear-all'
+  'http://localhost:6008/api/v1/cache-demo/products/clear-all'
 ```
 
 Response HTTP 200:

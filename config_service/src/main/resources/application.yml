@@ -1,0 +1,27 @@
+server:
+  port: 6001
+
+spring:
+  application:
+    name: config_service
+  profiles:
+    active: native            # đọc thư mục local, khỏi cần Git
+  security:
+    user:
+      name: ${CONFIG_USER:config}
+      password: ${CONFIG_PASSWORD:config-dev-password}   # đổi ở môi trường thật
+  cloud:
+    config:
+      server:
+        native:
+          # Hỗ trợ chạy từ module (Gradle) hoặc thư mục gốc repo (IntelliJ).
+          # Docker/server: đặt CONFIG_REPO_PATH=/config-repo
+          search-locations:
+            - file:${CONFIG_REPO_PATH:./config-repo}/
+            - file:${CONFIG_REPO_PATH:./config_service/config-repo}/
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health

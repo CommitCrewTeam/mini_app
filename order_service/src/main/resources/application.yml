@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 6005
 
 spring:
   application:
@@ -39,11 +39,11 @@ app:
       # Only used to calculate expiresAt in Redis. No Redis key TTL is set in Phase 03.
       hold-ttl: ${FLASH_SALE_RESERVATION_HOLD_TTL:5m}
   inventory:
-    url: ${INVENTORY_URL:http://localhost:8082}
+    url: ${INVENTORY_URL:http://localhost:6004}
   shipping:
-    url: ${SHIPPING_URL:http://localhost:8084}
+    url: ${SHIPPING_URL:http://localhost:6007}
   payment:
-    url: ${PAYMENT_URL:http://localhost:8088}
+    url: ${PAYMENT_URL:http://localhost:6006}
   kafka:
     topics:
       order-placed: ${KAFKA_TOPIC_ORDER_PLACED:order.placed}

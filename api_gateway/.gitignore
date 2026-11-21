@@ -1,0 +1,3 @@
+# Java source packages named out are not build output.
+!src/**/out/
+!src/**/out/**

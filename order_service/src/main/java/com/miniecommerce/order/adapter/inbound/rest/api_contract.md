@@ -1,7 +1,7 @@
 # Order API Contract
 
 Service: `order_service`
-Base URL: `http://localhost:8083/api/orders`
+Base URL: `http://localhost:6005/api/v1/orders`
 Stack: Spring Web (servlet MVC) + OpenFeign + Spring Kafka
 
 All responses are wrapped in the shared `ApiResponse<T>` (from the `common` module):
@@ -31,7 +31,7 @@ All responses are wrapped in the shared `ApiResponse<T>` (from the `common` modu
 }
 ```
 
-## POST /api/orders
+## POST /api/v1/orders
 
 Place an order. `OrderRestMapper` translates the request into a plain
 `CreateOrderCommand` (no business logic); `PlaceOrderApplicationService` builds the
@@ -39,7 +39,7 @@ Place an order. `OrderRestMapper` translates the request into a plain
 `addItem(...)` for each line), validates it, persists it, and publishes the event.
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8083/api/orders \
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:6005/api/v1/orders \
   -H "Content-Type: application/json" \
   -d '{
     "customerId": "c-1",
@@ -115,19 +115,19 @@ by the shared `GlobalExceptionHandler`): empty items, blank `customerId`,
 }
 ```
 
-## POST /api/orders/preview
+## POST /api/v1/orders/preview
 
 Preview an order before placing it. Returns, per line item, the enriched catalog
 data (name/detail/active/stock) fetched live from `inventory_service` via the
-batch endpoint `/api/phones/by-ids`, plus active shipping/payment options from
+batch endpoint `/api/v1/phones/by-ids`, plus active shipping/payment options from
 `shipping_service` and `payment_service`. `PreviewOrderApplicationService`
 orchestrates the three downstream calls in parallel (CompletableFuture) and joins.
 
-Request body (`OrderRequest` — same shape as `POST /api/orders`; `shippingFee`
+Request body (`OrderRequest` — same shape as `POST /api/v1/orders`; `shippingFee`
 is accepted but **ignored** for preview):
 
 ```bash
-curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:8083/api/orders/preview \
+curl -s -w "\nHTTP %{http_code}\n" -X POST http://localhost:6005/api/v1/orders/preview \
   -H "Content-Type: application/json" \
   -d '{
     "customerId": "c-1",
@@ -253,8 +253,8 @@ downstream services are reachable and return active rows.
 ## Notes
 
 - Kafka topic: `app.kafka.topics.order-placed` (default `order.placed`).
-- **Preview** (`POST /api/orders/preview`) reads live data from
-  `inventory_service` (`GET /api/phones/by-ids`), `shipping_service`
+- **Preview** (`POST /api/v1/orders/preview`) reads live data from
+  `inventory_service` (`GET /api/v1/phones/by-ids`), `shipping_service`
   (`GET /api/v1/shipping-methods`) and `payment_service`
   (`GET /api/v1/payment-methods`) via Feign clients, run in parallel.
   The place-order flow itself does **not** yet verify stock.

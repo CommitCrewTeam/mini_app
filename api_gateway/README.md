@@ -1,112 +1,55 @@
 # API Gateway
 
-Spring Cloud Gateway (reactive/WebFlux) cho hệ thống mini ecommerce.
-
-## Chạy
-
-Từ root project:
+Start config_service first, then api_gateway in separate terminals from the repository root:
 
 ```powershell
+.\gradlew.bat :config_service:bootRun
 .\gradlew.bat :api_gateway:bootRun
 ```
 
-Gateway chạy tại: `http://localhost:8080`
+Gateway listens on `http://localhost:6002`. Config Server supplies its port and routes from `config_service/config-repo/api_gateway.yml`. The local application.yml only contains its application name and Config Server connection. Restart gateway after changing the remote configuration.
 
-Có thể override URL từng service bằng biến môi trường:
+| Service / application name | Port |
+| --- | --- |
+| config_service | 6001 |
+| api_gateway | 6002 |
+| auth_service | 6003 |
+| inventory_service | 6004 |
+| order_service | 6005 |
+| payment_service | 6006 |
+| shipping_service | 6007 |
+| product_service | 6008 |
+| user_service | 6009 |
+| plan_service | 6010 |
+| pricing_service | 6011 |
+| notification_service | 6012 |
+| analytics_service | 6013 |
 
-```powershell
-$env:AUTH_SERVICE_URL = "http://localhost:8091"
-$env:USER_SERVICE_URL = "http://localhost:8087"
-.\gradlew.bat :api_gateway:bootRun
-```
+seed_service is a command-line job (`web-application-type: none`), so it has no HTTP port or gateway route. Infrastructure ports (Postgres, Redis, Kafka) stay unchanged.
 
-## Routes
+Each business service has a route `/{directory_name}/api/v1/**`. Gateway removes only the service name (`StripPrefix=1`), preserving `/api/v1` for the controller. Internal and downstream actuator endpoints are not exposed.
 
-| Route | Gateway path | Service | Port |
-|---|---|---|---|
-| auth-service | `/api/v1/auth/**` | auth_service | 8091 |
-| auth-user-roles | `/api/v1/users/*/roles` | auth_service | 8091 |
-| user-service | `/api/v1/users/**` | user_service | 8087 |
-| order-service | `/api/v1/orders/**` | order_service | 8083 |
-| inventory-service | `/api/v1/phones/**` | inventory_service | 8082 |
-| payment-service | `/api/v1/payment-methods/**` | payment_service | 8088 |
-| shipping-service | `/api/v1/shipping-methods/**` | shipping_service | 8084 |
+Examples:
 
-> Gateway bỏ hai segment `/api/v1` trước khi forward request; controller trong
-> từng service chỉ khai báo path service như `/users`, `/orders` hoặc `/phones`.
-> Route `auth-user-roles` được khai báo **trước** route `user-service` để
-> `/api/v1/users/{userId}/roles` đi đúng sang auth_service.
-> Tạo user chỉ được thực hiện qua endpoint nội bộ `/internal/users` của
-> user_service; endpoint này không được expose qua gateway.
+- `http://localhost:6002/auth_service/api/v1/auth/login`
+- `http://localhost:6002/auth_service/api/v1/users/{userId}/roles`
+- `http://localhost:6002/inventory_service/api/v1/phones/imports`
+- `http://localhost:6002/order_service/api/v1/orders`
+- `http://localhost:6002/payment_service/api/v1/payment-methods`
+- `http://localhost:6002/shipping_service/api/v1/shipping-methods`
+- `http://localhost:6002/product_service/api/v1/cache-demo/products/{id}`
 
-## Kiểm tra
+Routes do not create endpoints: services without controllers still return 404. The old FE Products CRUD page targets `/product_service/api/v1/products`, but product_service currently implements only cache-demo and product-lock controllers.
 
-```bash
-curl -i http://localhost:8080/actuator/health
-curl -i http://localhost:8080/actuator/gateway/routes
-```
+Existing authentication behavior is unchanged; the public-path list now uses the service-prefixed URLs.
 
-Test đăng ký qua gateway:
+The gateway source on origin/main references TokenVerificationPort but does not include
+that interface or an implementation. The interface is now included with the existing
+`Mono<TokenVerification> verify(String accessToken)` contract. A production adapter bean
+is still missing, so passing unit tests does not mean the application can start.
+TokenAuthenticationService and its constructor have not been changed. This routing
+update does not add a JWT verifier or change Redis/security configuration.
 
-```bash
-curl -i -X POST http://localhost:8080/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "tuan123",
-    "password": "password123",
-    "firstName": "Tuan",
-    "lastName": "Nguyen",
-    "email": "tuan123@example.com",
-    "address": "HCM",
-    "birthDate": "2000-01-01"
-  }'
-```
+Override service destinations with AUTH_SERVICE_URL, INVENTORY_SERVICE_URL, etc. Config Server connection uses CONFIG_URL (default `http://localhost:6001`), CONFIG_USER and CONFIG_PASSWORD.
 
-Test lấy danh sách user qua gateway:
-
-```bash
-curl -i http://localhost:8080/api/v1/users
-```
-
-## Kiến trúc (Hexagonal / Ports & Adapters)
-
-```
-com.miniecommerce.gateway
-├── domain/                        # Core – không phụ thuộc Spring/HTTP
-│   ├── model/                     # TokenVerification, TokenStatus
-│   └── port/
-│       ├── in/                    # AuthenticateTokenUseCase (driving port)
-│       └── out/                   # TokenVerificationPort (driven port)
-├── application/                   # TokenAuthenticationService (use case impl)
-└── adapter/
-    ├── in/web/                    # AuthGlobalFilter, GatewayErrorResponseWriter
-    └── out/http/                  # AuthHttpClient, WebClientConfig, HttpTokenVerificationAdapter
-```
-
-- `domain` và `application` không import Spring Gateway/WebFlux/WebClient.
-- Filter (`adapter/in/web`) chỉ phụ thuộc input port và xử lý HTTP concern.
-- Mọi kiến thức về auth_service (URL, header, DTO) nằm trong `adapter/out/http`.
-- Response lỗi dùng chung format `ApiResponse` với `GlobalExceptionHandler` của module common.
-
-## Xác thực
-
-`AuthGlobalFilter` chặn mọi request trừ:
-
-- `/api/v1/auth/login`, `/api/v1/auth/register`, `/api/v1/auth/refresh`
-- `/actuator`, `/actuator/**`
-- CORS preflight (`OPTIONS`)
-
-Token được gửi sang auth_service qua `POST /internal/auth/verify` (timeout 3s):
-
-| Trường hợp | HTTP status |
-|---|---|
-| Token hợp lệ | request được forward |
-| Thiếu header / token sai, hết hạn | `401 Unauthorized` |
-| auth_service lỗi hoặc timeout | `503 Service Unavailable` |
-
-## Ghi chú
-
-- Gateway xác thực tập trung bằng filter + auth_service; chưa dùng OAuth2 Resource Server.
-- Chưa dùng service discovery (Eureka); route đang trỏ trực tiếp bằng URL.
-- Nếu chạy service trong Docker network, đổi `AUTH_SERVICE_URL`... thành
-  `http://auth_service:8091`, `http://user_service:8087`...
+FE uses relative service-prefixed paths. Vite dev/preview forwards all these paths to GATEWAY_URL (default `http://localhost:6002`). Production hosting must reverse proxy the same service-prefixed paths to gateway and serve the SPA for non-API paths.

@@ -3,6 +3,7 @@ package com.miniecommerce.common.redis;
 import org.springframework.cache.annotation.EnableCaching;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Primary;
 import org.springframework.data.redis.cache.RedisCacheConfiguration;
 import org.springframework.data.redis.cache.RedisCacheManager;
 import org.springframework.data.redis.cache.RedisCacheWriter;
@@ -24,7 +25,8 @@ import java.util.Map;
 @Configuration
 @EnableCaching
 public class RedisConfig {
-    @Bean
+    @Bean("commonRedisTemplate")
+    @Primary
     public RedisTemplate<String, Object> redisTemplate(RedisConnectionFactory factory) {
         RedisTemplate<String, Object> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(factory);
@@ -38,7 +40,8 @@ public class RedisConfig {
         return redisTemplate;
     }
 
-    @Bean
+    @Bean("commonStringRedisTemplate")
+    @Primary
     public StringRedisTemplate stringRedisTemplate(RedisConnectionFactory factory) {
         StringRedisTemplate stringRedisTemplate = new StringRedisTemplate();
         stringRedisTemplate.setConnectionFactory(factory);
@@ -46,7 +49,8 @@ public class RedisConfig {
         return stringRedisTemplate;
     }
 
-    @Bean
+    @Bean("commonReactiveRedisTemplate")
+    @Primary
     public ReactiveRedisTemplate<String, Object> reactiveRedisTemplate(ReactiveRedisConnectionFactory factory) {
         RedisSerializationContext<String, Object> serializationContext = RedisSerializationContext
                 .<String, Object>newSerializationContext(new StringRedisSerializer())
@@ -56,7 +60,8 @@ public class RedisConfig {
         return new ReactiveRedisTemplate<>(factory, serializationContext);
     }
 
-    @Bean
+    @Bean("commonReactiveStringRedisTemplate")
+    @Primary
     public ReactiveStringRedisTemplate reactiveStringRedisTemplate(ReactiveRedisConnectionFactory factory) {
         return new ReactiveStringRedisTemplate(factory);
     }
