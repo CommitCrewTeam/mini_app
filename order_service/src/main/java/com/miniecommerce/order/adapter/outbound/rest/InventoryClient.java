@@ -9,12 +9,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 
-@FeignClient(name = "inventory-service", url = "${app.inventory.url:http://localhost:8082}")
+@FeignClient(name = "inventory-service", url = "${app.inventory.url:http://localhost:6004}")
 public interface InventoryClient {
 
-    @GetMapping("/api/phones/{id}")
+    @GetMapping("/api/v1/phones/{id}")
     ApiResponse<Integer> getStock(@PathVariable("id") String id);
 
-    @GetMapping("/api/phones/by-ids")
+    @GetMapping("/api/v1/phones/by-ids")
     ApiResponse<List<PhoneDto>> getItemsForOrderPreview(@RequestParam("ids") List<Long> ids);
 }

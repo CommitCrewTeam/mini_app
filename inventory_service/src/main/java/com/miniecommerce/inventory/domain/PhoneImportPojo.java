@@ -30,6 +30,7 @@ public final class PhoneImportPojo {
             Function<Path, Mono<Void>> transferTo
     ) { }
 
-    public record PhoneImportSourceRow(long rowNumber, String key, String detail, String active,
-            String stock, String errorMessage) { }
+    /** Raw CSV row, mirroring the phone_draft columns: rowNumber comes from the line position. */
+    public record PhoneImportSourceRow(long rowNumber, String key, String detail, String quantity,
+            String errorMessage) { }
 }

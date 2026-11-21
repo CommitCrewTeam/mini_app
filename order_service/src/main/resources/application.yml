@@ -1,5 +1,5 @@
 server:
-  port: 8083
+  port: 6005
 
 spring:
   application:
@@ -9,6 +9,14 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.apache.kafka.common.serialization.StringSerializer
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      # Bounded command timeout: the reservation hot path must fail fast instead of
+      # exhausting servlet threads while Redis is slow or unavailable.
+      timeout: ${REDIS_TIMEOUT:250ms}
+      connect-timeout: ${REDIS_CONNECT_TIMEOUT:2s}
   datasource:
     url: jdbc:postgresql://localhost:5432/order_service
     username: ecommerce_user
@@ -20,13 +28,22 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
 
+security:
+  jwt:
+    # Must align with auth_service issuer secret in dev; override in real environments.
+    secret: ${JWT_SECRET:mini-ecommerce-auth-dev-secret-key-change-me}
+
 app:
+  flash-sale:
+    reservation:
+      # Only used to calculate expiresAt in Redis. No Redis key TTL is set in Phase 03.
+      hold-ttl: ${FLASH_SALE_RESERVATION_HOLD_TTL:5m}
   inventory:
-    url: ${INVENTORY_URL:http://localhost:8082}
+    url: ${INVENTORY_URL:http://localhost:6004}
   shipping:
-    url: ${SHIPPING_URL:http://localhost:8084}
+    url: ${SHIPPING_URL:http://localhost:6007}
   payment:
-    url: ${PAYMENT_URL:http://localhost:8088}
+    url: ${PAYMENT_URL:http://localhost:6006}
   kafka:
     topics:
       order-placed: ${KAFKA_TOPIC_ORDER_PLACED:order.placed}

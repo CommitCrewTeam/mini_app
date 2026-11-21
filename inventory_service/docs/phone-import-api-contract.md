@@ -2,15 +2,15 @@
 
 Đối chiếu với code ngày 2026-11-14. Service: `inventory_service`.
 
-Base URL khi chạy local: `http://localhost:8082`.
+Base URL khi chạy local: `http://localhost:6004`.
 
 ## 1. Danh sách API
 
 | Method | Path | Request | HTTP thành công | `data` trả về |
 |---|---|---|---|---|
-| POST | `/api/phones/imports` | Multipart: `file`, `mode` | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
-| POST | `/api/phones/imports/{importId}/validate` | Không có body | 202 | `jobExecutionId`: integer/int64 |
-| POST | `/api/phones/imports/{importId}/approve` | Không có body | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
+| POST | `/api/v1/phones/imports` | Multipart: `file`, `mode` | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
+| POST | `/api/v1/phones/imports/{importId}/validate` | Không có body | 202 | `jobExecutionId`: integer/int64 |
+| POST | `/api/v1/phones/imports/{importId}/approve` | Không có body | 202 | `{ importId, jobExecutionId }`: hai ID int64 |
 
 `202 Accepted` chỉ xác nhận đã gửi job, không xác nhận xử lý thành công. `importId` và `jobExecutionId` là hai loại ID khác nhau; path luôn dùng ID int64 của import.
 
@@ -30,7 +30,7 @@ Response là JSON theo `ApiResponse<T>`. `code` là string; response thành côn
 
 ## 3. Upload CSV
 
-`POST /api/phones/imports`
+`POST /api/v1/phones/imports`
 
 Content-Type: `multipart/form-data`. Để HTTP client tự tạo multipart boundary.
 
@@ -44,7 +44,7 @@ Giới hạn ứng dụng mặc định: **20,971,520 bytes (20 MiB)**, cấu h�
 Ví dụ PowerShell, chạy tại thư mục gốc repository:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE"
 ```
 
 HTTP `202`; response như mục 2, dùng `data.importId` để gọi validate/approve và xem `/stat`. Upload chạy ingest CSV và validation ở background; chưa ghi các draft vào bảng phone.
@@ -55,13 +55,13 @@ Approve dùng executor riêng với `app.phone-import.approval.launch-workers` (
 
 ## 4. Validate lại
 
-`POST /api/phones/imports/{importId}/validate`
+`POST /api/v1/phones/imports/{importId}/validate`
 
 Path parameter `importId`: ID int64, bắt buộc. Không có body. Import phải ở trạng thái `READY`.
 
 ```powershell
 $importId = 10
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$importId/validate"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$importId/validate"
 ```
 
 HTTP `202`:
@@ -80,13 +80,13 @@ Job kiểm tra lại các draft chưa `APPLIED`, gồm cả draft đã `VALID` h
 
 ## 5. Approve
 
-`POST /api/phones/imports/{importId}/approve`
+`POST /api/v1/phones/imports/{importId}/approve`
 
 Path parameter `importId`: ID int64, bắt buộc. Không có body. Import phải ở trạng thái `READY` hoặc `VALIDATED`.
 
 ```powershell
 $importId = 10
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$importId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$importId/approve"
 ```
 
 HTTP `202`:
@@ -113,27 +113,26 @@ Phone và trạng thái draft `APPLIED` được ghi trong cùng transaction c�
 
 ## 6. CSV và ý nghĩa mode
 
-File UTF-8, dấu phân cách `,`, bốn cột đúng thứ tự sau. Reader bỏ dòng đầu tiên mà không kiểm tra tên header. Mỗi bản ghi nên nằm trên một dòng.
+File UTF-8, dấu phân cách `,`, ba cột đúng thứ tự sau. Reader bỏ dòng đầu tiên mà không kiểm tra tên header. Mỗi bản ghi nên nằm trên một dòng. `rowNumber` không phải cột trong file: đó là số dòng do reader gán cho mỗi bản ghi.
 
 ```csv
-name,detail,active,stock
-iPhone 15,"{""color"":""black"",""storage"":""256GB""}",false,10
-Galaxy S24,"{""color"":""white""}",false,5
-Pixel 8,"{""color"":""blue""}",false,0
+key,detail,quantity
+iPhone 15,"{""color"":""black"",""storage"":""256GB""}",10
+Galaxy S24,"{""color"":""white""}",5
+Pixel 8,"{""color"":""blue""}",0
 ```
 
 | Cột | Quy tắc hiện tại |
 |---|---|
-| `name` | Không rỗng; dùng làm key sau khi trim và chuyển chữ thường. Key không được trùng trong cùng import |
+| `key` | Không rỗng; được trim và chuyển chữ thường. Key không được trùng trong cùng import |
 | `detail` | JSON object, ví dụ `{}`. Bọc field bằng dấu nháy kép và escape nháy kép bên trong bằng `""` |
-| `active` | Bắt buộc có vị trí cột, nhưng giá trị hiện không được dùng hoặc validate |
-| `stock` | Số nguyên Java `Integer`, không âm; vẫn phải hợp lệ cho cả ba mode |
+| `quantity` | Số nguyên Java `Integer`, không âm; vẫn phải hợp lệ cho cả ba mode |
 
 | Mode | Điều kiện key | Khi approve thành công |
 |---|---|---|
-| `CREATE` | Chưa tồn tại trong phone | Tạo phone với name/key đã chuẩn hóa, detail và stock từ CSV; `active=false` bất kể CSV |
-| `UPDATE` | Đã tồn tại | Thay toàn bộ detail; giữ stock, name và active hiện tại |
-| `RESTOCK` | Đã tồn tại | Cộng stock từ CSV vào stock hiện tại; giữ detail, name và active |
+| `CREATE` | Chưa tồn tại trong phone | Tạo phone với key đã chuẩn hóa, detail và quantity (thành stock) từ CSV; `active=false` bất kể CSV |
+| `UPDATE` | Đã tồn tại | Thay toàn bộ detail; giữ stock, key và active hiện tại |
+| `RESTOCK` | Đã tồn tại | Cộng quantity từ CSV vào stock hiện tại; giữ detail, key và active |
 
 `detail` vẫn phải là JSON object trong RESTOCK, dù không được dùng để cập nhật phone. UPDATE/RESTOCK kiểm tra version để tránh ghi đè thay đổi đồng thời.
 
@@ -167,7 +166,7 @@ DB chỉ cho một import chưa DONE/FAILED tại một thời điểm. Upload k
 
 Thiếu multipart part, ID int64 sai định dạng, hoặc vượt giới hạn multipart không có mapping riêng trong exception handler; không cam kết trả cùng mã/message với các lỗi ứng dụng ở bảng trên.
 
-Lỗi từng dòng được lưu vào draft, không trả trong HTTP 202 đã gửi. Các message hiện có gồm `Cannot parse CSV columns`, `Cannot parse stock integer`, `Cannot parse detail JSON object`, `Key is required`, `Stock must not be negative`, `Duplicate key in import`, `Key already exists in phone`, `Key does not exist in phone`.
+Lỗi từng dòng được lưu vào draft, không trả trong HTTP 202 đã gửi. Các message hiện có gồm `Cannot parse CSV columns`, `Cannot parse quantity integer`, `Cannot parse detail JSON object`, `Key is required`, `Stock must not be negative`, `Duplicate key in import`, `Key already exists in phone`, `Key does not exist in phone`.
 
 ## 8. Trạng thái và giới hạn tích hợp hiện tại
 
@@ -194,7 +193,7 @@ Chạy các case thành công theo thứ tự CREATE → UPDATE → RESTOCK. Tr�
 File: [example.csv](example.csv).
 
 ```powershell
-$create = curl.exe -sS -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE" | ConvertFrom-Json
+$create = curl.exe -sS -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=CREATE" | ConvertFrom-Json
 $create
 $createImportId = $create.data.importId
 ```
@@ -202,23 +201,23 @@ $createImportId = $create.data.importId
 Upload thành công trả HTTP `202`, `success=true`, `data` chứa `importId` và `jobExecutionId`. Kiểm tra `/stat` đến khi import `READY`, rồi chạy:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$createImportId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$createImportId/approve"
 ```
 
 Approve trả HTTP `202` và job execution ID. Sau khi import `DONE`, kiểm tra kết quả:
 
 ```powershell
-curl.exe -i "http://localhost:8082/api/phones"
+curl.exe -i "http://localhost:6004/api/v1/phones"
 ```
 
 Mong đợi có `iphone 15` stock `10`, `galaxy s24` stock `5`, `pixel 8` stock `0`; detail tương ứng CSV. Cả ba phone có `active=false`.
 
 ### Case 2: UPDATE — thay detail, giữ stock
 
-File: [example-update.csv](example-update.csv). Dùng cùng ba key đã tạo ở case 1. Stock trong file cố ý là `999`, active là `true` để minh họa hai cột này không được dùng để cập nhật phone trong mode UPDATE.
+File: [example-update.csv](example-update.csv). Dùng cùng ba key đã tạo ở case 1. `quantity` trong file cố ý là `999` để minh họa cột này không được dùng để cập nhật phone trong mode UPDATE.
 
 ```powershell
-$update = curl.exe -sS -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example-update.csv;type=text/csv" -F "mode=UPDATE" | ConvertFrom-Json
+$update = curl.exe -sS -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example-update.csv;type=text/csv" -F "mode=UPDATE" | ConvertFrom-Json
 $update
 $updateImportId = $update.data.importId
 ```
@@ -226,23 +225,23 @@ $updateImportId = $update.data.importId
 Sau khi import `READY`, có thể gọi validate riêng để kiểm thử API này:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$updateImportId/validate"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$updateImportId/validate"
 ```
 
 Validate trả HTTP `202` và job execution ID. Chờ import tới `VALIDATED` rồi approve:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$updateImportId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$updateImportId/approve"
 ```
 
-Sau khi `DONE`, gọi `GET /api/phones`. Mong đợi detail được thay bằng object trong file UPDATE, stock vẫn lần lượt `10`, `5`, `0`; active vẫn `false`. UPDATE thay toàn bộ object detail, không merge từng thuộc tính.
+Sau khi `DONE`, gọi `GET /api/v1/phones`. Mong đợi detail được thay bằng object trong file UPDATE, stock vẫn lần lượt `10`, `5`, `0`; active vẫn `false`. UPDATE thay toàn bộ object detail, không merge từng thuộc tính.
 
 ### Case 3: RESTOCK — cộng tồn kho
 
 File: [example-restock.csv](example-restock.csv). Số lượng cộng lần lượt là `3`, `2`, `1`; detail dùng `{}` vì vẫn phải parse được JSON object.
 
 ```powershell
-$restock = curl.exe -sS -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example-restock.csv;type=text/csv" -F "mode=RESTOCK" | ConvertFrom-Json
+$restock = curl.exe -sS -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example-restock.csv;type=text/csv" -F "mode=RESTOCK" | ConvertFrom-Json
 $restock
 $restockImportId = $restock.data.importId
 ```
@@ -250,10 +249,10 @@ $restockImportId = $restock.data.importId
 Chờ import `READY`, rồi chạy:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports/$restockImportId/approve"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports/$restockImportId/approve"
 ```
 
-Sau khi `DONE`, gọi `GET /api/phones`. Mong đợi stock lần lượt `13`, `7`, `1`; detail giữ kết quả case UPDATE, active vẫn `false`.
+Sau khi `DONE`, gọi `GET /api/v1/phones`. Mong đợi stock lần lượt `13`, `7`, `1`; detail giữ kết quả case UPDATE, active vẫn `false`.
 
 ### Case lỗi theo mode
 
@@ -264,7 +263,7 @@ Các case lỗi dữ liệu dưới đây chạy độc lập với dữ liệu/
 | CREATE key đã tồn tại | Upload `example.csv` bằng CREATE sau case 1 | Upload có thể trả 202; background đánh dấu draft INVALID: `Key already exists in phone` |
 | UPDATE key chưa tồn tại | Upload `example-update.csv` bằng UPDATE trên DB không có ba key mẫu | Draft INVALID: `Key does not exist in phone` |
 | RESTOCK key chưa tồn tại | Upload `example-restock.csv` bằng RESTOCK trên DB không có ba key mẫu | Draft INVALID: `Key does not exist in phone` |
-| Stock âm, bất kỳ mode | Đổi stock một dòng thành `-1` | Draft INVALID: `Stock must not be negative` |
+| Quantity âm, bất kỳ mode | Đổi quantity một dòng thành `-1` | Draft INVALID: `Stock must not be negative` |
 | Trùng key trong file, bất kỳ mode | Lặp lại một key trong CSV | Draft INVALID: `Duplicate key in import` |
 | Sai tên mode | Gửi `mode=create` hoặc `mode=UPSERT` | HTTP 400, code `BAD_REQUEST`, message `Mode must be CREATE, UPDATE or RESTOCK` |
 
@@ -273,7 +272,7 @@ Với các case draft INVALID: gọi approve khi READY vẫn có thể nhận HT
 Ví dụ kiểm tra mode sai, không tạo import:
 
 ```powershell
-curl.exe -i -X POST "http://localhost:8082/api/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=create"
+curl.exe -i -X POST "http://localhost:6004/api/v1/phones/imports" -F "file=@inventory_service/docs/example.csv;type=text/csv" -F "mode=create"
 ```
 
 ## 10. Nguồn đối chiếu

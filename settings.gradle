@@ -28,3 +28,6 @@ include 'seed_service'
 include 'auth_service'
 include 'product_service'
 
+
+include 'api_gateway'
+include 'config_service'

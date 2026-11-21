@@ -1,4 +1,4 @@
-name,detail,active,stock
-iPhone 15,"{""color"":""silver"",""storage"":""512GB""}",true,999
-Galaxy S24,"{""color"":""violet"",""storage"":""256GB""}",true,999
-Pixel 8,"{""color"":""green"",""storage"":""128GB""}",true,999
+key,detail,quantity
+iPhone 15,"{""color"":""silver"",""storage"":""512GB""}",999
+Galaxy S24,"{""color"":""violet"",""storage"":""256GB""}",999
+Pixel 8,"{""color"":""green"",""storage"":""128GB""}",999

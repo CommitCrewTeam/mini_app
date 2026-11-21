@@ -37,7 +37,7 @@ class AuthGlobalFilterTest {
     @Test
     void allowsPublicPathWithoutAuthentication() {
         MockServerWebExchange exchange = exchangeFor(
-                MockServerHttpRequest.post("/api/v1/auth/login").build());
+                MockServerHttpRequest.post("/auth_service/api/v1/auth/login").build());
         when(chain.filter(any())).thenReturn(Mono.empty());
 
         StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
@@ -49,7 +49,7 @@ class AuthGlobalFilterTest {
     @Test
     void allowsCorsPreflightWithoutAuthentication() {
         MockServerWebExchange exchange = exchangeFor(
-                MockServerHttpRequest.method(HttpMethod.OPTIONS, "/api/v1/orders").build());
+                MockServerHttpRequest.method(HttpMethod.OPTIONS, "/order_service/api/v1/orders").build());
         when(chain.filter(any())).thenReturn(Mono.empty());
 
         StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
@@ -61,7 +61,7 @@ class AuthGlobalFilterTest {
     @Test
     void rejectsRequestWithoutAuthorizationHeader() {
         MockServerWebExchange exchange = exchangeFor(
-                MockServerHttpRequest.get("/api/v1/orders").build());
+                MockServerHttpRequest.get("/order_service/api/v1/orders").build());
 
         StepVerifier.create(filter.filter(exchange, chain)).verifyComplete();
 
@@ -76,7 +76,7 @@ class AuthGlobalFilterTest {
                 .thenReturn(Mono.just(AuthenticationResult.of(TokenStatus.INVALID)));
 
         MockServerWebExchange exchange = exchangeFor(
-                MockServerHttpRequest.get("/api/v1/orders")
+                MockServerHttpRequest.get("/order_service/api/v1/orders")
                         .header("Authorization", "Bearer abc")
                         .build());
 
@@ -92,7 +92,7 @@ class AuthGlobalFilterTest {
                 .thenReturn(Mono.just(AuthenticationResult.of(TokenStatus.UNAVAILABLE)));
 
         MockServerWebExchange exchange = exchangeFor(
-                MockServerHttpRequest.get("/api/v1/orders")
+                MockServerHttpRequest.get("/order_service/api/v1/orders")
                         .header("Authorization", "Bearer abc")
                         .build());
 
@@ -110,7 +110,7 @@ class AuthGlobalFilterTest {
         when(chain.filter(any())).thenReturn(Mono.empty());
 
         MockServerWebExchange exchange = exchangeFor(
-                MockServerHttpRequest.get("/api/v1/orders")
+                MockServerHttpRequest.get("/order_service/api/v1/orders")
                         .header("Authorization", "bearer abc")
                         .build());
 

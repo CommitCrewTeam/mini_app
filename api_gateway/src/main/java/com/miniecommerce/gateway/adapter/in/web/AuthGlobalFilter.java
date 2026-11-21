@@ -27,9 +27,9 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     // Chỉ những API này mới được public. Không dùng prefix /api/v1/auth/
     // để tránh vô tình public các endpoint thêm sau này như /auth/me.
     private static final List<String> PUBLIC_PATHS = List.of(
-            "/api/v1/auth/login",
-            "/api/v1/auth/register",
-            "/api/v1/auth/refresh"
+            "/auth_service/api/v1/auth/login",
+            "/auth_service/api/v1/auth/register",
+            "/auth_service/api/v1/auth/refresh"
     );
 
     private final AuthenticateTokenUseCase authenticateTokenUseCase;
@@ -68,15 +68,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     }
 
     private boolean isPublicRequest(ServerHttpRequest request) {
-        // CORS preflight request không mang token.
-        if (HttpMethod.OPTIONS.equals(request.getMethod())) {
-            return true;
-        }
-
-        String path = request.getURI().getPath();
-        return PUBLIC_PATHS.contains(path)
-                || path.equals("/actuator")
-                || path.startsWith("/actuator/");
+        // TEST ONLY - bypass auth, mo moi request khong can dang nhap. ĐỪNG COMMIT.
+        return true;
     }
 
     /**

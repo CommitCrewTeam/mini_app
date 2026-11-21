@@ -1,5 +1,5 @@
 server:
-  port: 8082
+  port: 6004
 
 spring:
   batch:
@@ -23,6 +23,15 @@ spring:
     user: ecommerce_user
     password: ecommerce_password
     change-log: classpath:db/changelog/db.changelog-master.yaml
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+security:
+  jwt:
+    # Must align with auth_service issuer secret in dev; override in real environments.
+    secret: ${JWT_SECRET:mini-ecommerce-auth-dev-secret-key-change-me}
 
 app:
   phone-import:

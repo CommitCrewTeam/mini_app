@@ -52,7 +52,7 @@ public class SpringBatchPhoneImportJob {
         this.job = job;
         this.phoneImportRepository = phoneImportRepository;
         this.phoneDraftRepository = phoneDraftRepository;
-        this.csvTokenizer.setNames("name", "detail", "active", "stock");
+        this.csvTokenizer.setNames("key", "detail", "quantity");
     }
 
     public JobExecution submit(PhoneImport phoneImport, Path input) {
@@ -103,11 +103,11 @@ public class SpringBatchPhoneImportJob {
         try {
             var f = csvTokenizer.tokenize(line);
             return new PhoneImportSourceRow(lineNumber,
-                    f.readString("name"), f.readString("detail"),
-                    f.readString("active"), f.readString("stock"), null);
+                    f.readString("key"), f.readString("detail"),
+                    f.readString("quantity"), null);
         } catch (Exception e) {
             return new PhoneImportSourceRow(
-                    lineNumber, null, null, null, null, "Cannot parse CSV columns");
+                    lineNumber, null, null, null, "Cannot parse CSV columns");
         }
     }
 

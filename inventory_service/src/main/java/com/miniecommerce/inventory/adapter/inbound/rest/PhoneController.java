@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/phones")
+@RequestMapping("/api/v1/phones")
 public class PhoneController {
 
     private final PhoneUseCase phoneUseCase;
