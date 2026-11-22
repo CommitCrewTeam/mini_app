@@ -1,5 +1,3 @@
 package com.miniecommerce.auth.app.command;
 
-public record RefreshTokenCommand(String refreshToken){
-
-}
+public record RefreshTokenCommand(String refreshToken) {}

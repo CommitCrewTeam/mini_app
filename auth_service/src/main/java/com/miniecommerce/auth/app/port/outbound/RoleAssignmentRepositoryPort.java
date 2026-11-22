@@ -4,5 +4,5 @@ import java.util.UUID;
 
 public interface RoleAssignmentRepositoryPort {
 
-    void assignRole(UUID userId, String roleCode);
+  void assignRole(UUID userId, String roleCode);
 }

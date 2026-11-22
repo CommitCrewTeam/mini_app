@@ -1,12 +1,10 @@
 package com.miniecommerce.gateway.adapter.in.web;
 
-import com.miniecommerce.gateway.domain.model.AuthenticationResult;
-import com.miniecommerce.gateway.domain.port.in.AuthenticateTokenUseCase;
+import com.miniecommerce.gateway.application.port.in.AuthenticateTokenUseCase;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.stereotype.Component;

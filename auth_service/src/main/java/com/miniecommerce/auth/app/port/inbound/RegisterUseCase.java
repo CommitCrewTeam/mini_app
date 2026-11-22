@@ -4,5 +4,5 @@ import com.miniecommerce.auth.app.command.RegisterCommand;
 import com.miniecommerce.auth.domain.Auth;
 
 public interface RegisterUseCase {
-    Auth register(RegisterCommand command);
+  Auth register(RegisterCommand command);
 }

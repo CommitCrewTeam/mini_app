@@ -1,9 +1,9 @@
-package com.miniecommerce.gateway.application;
+package com.miniecommerce.gateway.application.service;
 
 import com.miniecommerce.gateway.domain.model.AuthenticationResult;
 import com.miniecommerce.gateway.domain.model.TokenStatus;
-import com.miniecommerce.gateway.domain.port.in.AuthenticateTokenUseCase;
-import com.miniecommerce.gateway.domain.port.out.TokenVerificationPort;
+import com.miniecommerce.gateway.application.port.in.AuthenticateTokenUseCase;
+import com.miniecommerce.gateway.application.port.out.TokenVerificationPort;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 

@@ -1,4 +1,4 @@
-package com.miniecommerce.gateway.domain.port.out;
+package com.miniecommerce.gateway.application.port.out;
 
 import com.miniecommerce.gateway.domain.model.TokenVerification;
 import org.springframework.stereotype.Component;
@@ -14,9 +14,4 @@ public interface TokenVerificationPort {
     default Mono<TokenVerification> verify(String accessToken) {
         return Mono.empty();
     }
-}
-
-/** Bean tạm để Spring có đối tượng inject vào TokenAuthenticationService. */
-@Component
-class NoopTokenVerificationPort implements TokenVerificationPort {
 }

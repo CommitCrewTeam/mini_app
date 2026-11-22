@@ -1,9 +1,10 @@
 package com.miniecommerce.gateway.application;
 
+import com.miniecommerce.gateway.application.service.TokenAuthenticationService;
 import com.miniecommerce.gateway.domain.model.AuthenticationResult;
 import com.miniecommerce.gateway.domain.model.TokenStatus;
 import com.miniecommerce.gateway.domain.model.TokenVerification;
-import com.miniecommerce.gateway.domain.port.out.TokenVerificationPort;
+import com.miniecommerce.gateway.application.port.out.TokenVerificationPort;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;

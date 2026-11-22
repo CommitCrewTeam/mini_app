@@ -4,5 +4,5 @@ import com.miniecommerce.auth.app.command.RefreshTokenCommand;
 import com.miniecommerce.auth.app.result.LoginResult;
 
 public interface RefreshTokenUseCase {
-    public LoginResult refresh(RefreshTokenCommand command);
+  public LoginResult refresh(RefreshTokenCommand command);
 }

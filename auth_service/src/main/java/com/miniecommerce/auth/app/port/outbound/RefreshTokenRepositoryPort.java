@@ -1,16 +1,14 @@
 package com.miniecommerce.auth.app.port.outbound;
 
-import com.miniecommerce.auth.domain.RefreshToken;
-
-import java.time.Instant;
 import java.util.Optional;
-import java.util.UUID;
+
+import com.miniecommerce.auth.domain.RefreshToken;
 
 public interface RefreshTokenRepositoryPort {
 
-    RefreshToken save(RefreshToken refreshToken);
+  RefreshToken save(RefreshToken refreshToken);
 
-    Optional<RefreshToken> findByTokenHash(String tokenHash);
+  Optional<RefreshToken> findByTokenHash(String tokenHash);
 
-    int removeByTokenHash(String tokenHash);
+  int removeByTokenHash(String tokenHash);
 }

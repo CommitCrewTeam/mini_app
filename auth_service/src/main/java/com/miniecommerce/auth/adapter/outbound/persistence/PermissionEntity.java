@@ -1,5 +1,10 @@
 package com.miniecommerce.auth.adapter.outbound.persistence;
 
+import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -10,6 +15,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.EqualsAndHashCode;
@@ -18,13 +24,10 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import java.time.Instant;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-
 @Entity
-@Table(name = "permissions", uniqueConstraints = @UniqueConstraint(name = "uk_permissions_code", columnNames = "code"))
+@Table(
+    name = "permissions",
+    uniqueConstraints = @UniqueConstraint(name = "uk_permissions_code", columnNames = "code"))
 @Getter
 @Setter
 @NoArgsConstructor
@@ -34,47 +37,47 @@ import java.util.UUID;
 @ToString(onlyExplicitlyIncluded = true)
 public class PermissionEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    @EqualsAndHashCode.Include
-    @ToString.Include
-    @Column(name = "id", nullable = false, updatable = false)
-    private UUID id;
+  @Id
+  @GeneratedValue(strategy = GenerationType.UUID)
+  @EqualsAndHashCode.Include
+  @ToString.Include
+  @Column(name = "id", nullable = false, updatable = false)
+  private UUID id;
 
-    @ToString.Include
-    @Column(name = "code", nullable = false, length = 100)
-    private String code;
+  @ToString.Include
+  @Column(name = "code", nullable = false, length = 100)
+  private String code;
 
-    @ToString.Include
-    @Column(name = "name", nullable = false, length = 100)
-    private String name;
+  @ToString.Include
+  @Column(name = "name", nullable = false, length = 100)
+  private String name;
 
-    @Column(name = "description", length = 500)
-    private String description;
+  @Column(name = "description", length = 500)
+  private String description;
 
-    @ToString.Include
-    @Column(name = "active", nullable = false)
-    private boolean active;
+  @ToString.Include
+  @Column(name = "active", nullable = false)
+  private boolean active;
 
-    @Column(name = "created_at", nullable = false, updatable = false)
-    private Instant createdAt;
+  @Column(name = "created_at", nullable = false, updatable = false)
+  private Instant createdAt;
 
-    @Column(name = "updated_at", nullable = false)
-    private Instant updatedAt;
+  @Column(name = "updated_at", nullable = false)
+  private Instant updatedAt;
 
-    @Builder.Default
-    @ManyToMany(mappedBy = "permissions")
-    private Set<RoleEntity> roles = new HashSet<>();
+  @Builder.Default
+  @ManyToMany(mappedBy = "permissions")
+  private Set<RoleEntity> roles = new HashSet<>();
 
-    @PrePersist
-    void prePersist() {
-        Instant now = Instant.now();
-        createdAt = now;
-        updatedAt = now;
-    }
+  @PrePersist
+  void prePersist() {
+    Instant now = Instant.now();
+    createdAt = now;
+    updatedAt = now;
+  }
 
-    @PreUpdate
-    void preUpdate() {
-        updatedAt = Instant.now();
-    }
+  @PreUpdate
+  void preUpdate() {
+    updatedAt = Instant.now();
+  }
 }

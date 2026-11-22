@@ -3,7 +3,7 @@ package com.miniecommerce.gateway.adapter.in.web;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.miniecommerce.gateway.domain.model.AuthenticationResult;
 import com.miniecommerce.gateway.domain.model.TokenStatus;
-import com.miniecommerce.gateway.domain.port.in.AuthenticateTokenUseCase;
+import com.miniecommerce.gateway.application.port.in.AuthenticateTokenUseCase;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.http.HttpMethod;

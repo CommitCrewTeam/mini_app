@@ -4,5 +4,5 @@ import com.miniecommerce.auth.app.command.AssignRoleCommand;
 
 public interface AssignRoleUseCase {
 
-    void assign(AssignRoleCommand command);
+  void assign(AssignRoleCommand command);
 }

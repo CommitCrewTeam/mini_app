@@ -1,4 +1,4 @@
-package com.miniecommerce.gateway.domain.port.in;
+package com.miniecommerce.gateway.application.port.in;
 
 import com.miniecommerce.gateway.domain.model.AuthenticationResult;
 import reactor.core.publisher.Mono;

@@ -5,5 +5,5 @@ import com.miniecommerce.auth.app.result.LoginResult;
 
 public interface LoginUseCase {
 
-    LoginResult login(LoginCommand command);
+  LoginResult login(LoginCommand command);
 }

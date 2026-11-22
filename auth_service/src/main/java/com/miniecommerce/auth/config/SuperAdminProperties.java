@@ -1,11 +1,13 @@
 package com.miniecommerce.auth.config;
 
 import jakarta.validation.constraints.NotBlank;
-import lombok.Getter;
-import lombok.Setter;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
+
+import lombok.Getter;
+import lombok.Setter;
 
 @Component
 @ConfigurationProperties(prefix = "bootstrap.super-admin")
@@ -14,9 +16,7 @@ import org.springframework.validation.annotation.Validated;
 @Setter
 public class SuperAdminProperties {
 
-    @NotBlank
-    private String username;
+  @NotBlank private String username;
 
-    @NotBlank
-    private String password;
+  @NotBlank private String password;
 }
