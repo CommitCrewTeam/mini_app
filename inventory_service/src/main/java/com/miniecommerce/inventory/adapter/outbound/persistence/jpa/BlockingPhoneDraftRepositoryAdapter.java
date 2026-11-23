@@ -3,6 +3,7 @@ package com.miniecommerce.inventory.adapter.outbound.persistence.jpa;
 import com.miniecommerce.inventory.adapter.outbound.persistence.jpa.mapper.PhoneJpaMapper;
 import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneDraftRepositoryPort;
 import com.miniecommerce.inventory.domain.PhoneDraft;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneDraftApprovalSummary;
 import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
 import java.util.List;
 import java.util.Set;
@@ -42,9 +43,19 @@ public class BlockingPhoneDraftRepositoryAdapter implements BlockingPhoneDraftRe
     }
 
     @Override
-    public boolean allValid(Long importId) {
-        return repository.countByImportId(importId) > 0
-                && repository.countByImportIdAndStatusNot(importId, PhoneDraftStatus.VALID.name()) == 0;
+    public PhoneDraftApprovalSummary summarizeForApproval(Long importId) {
+        var counts = repository.summarizeStatusesByImportId(importId);
+        long total = counts.stream().mapToLong(PhoneDraftJpaRepository.StatusCount::getRowCount).sum();
+        long valid = counts.stream()
+                .filter(row -> PhoneDraftStatus.VALID.name().equals(row.getStatus()))
+                .mapToLong(PhoneDraftJpaRepository.StatusCount::getRowCount).sum();
+        long warnings = counts.stream()
+                .filter(row -> PhoneDraftStatus.WARNING.name().equals(row.getStatus()))
+                .mapToLong(PhoneDraftJpaRepository.StatusCount::getRowCount).sum();
+        long invalid = counts.stream()
+                .filter(row -> PhoneDraftStatus.INVALID.name().equals(row.getStatus()))
+                .mapToLong(PhoneDraftJpaRepository.StatusCount::getRowCount).sum();
+        return new PhoneDraftApprovalSummary(total, valid, warnings, invalid);
     }
 
     @Override

@@ -2,12 +2,13 @@ package com.miniecommerce.inventory.adapter.inbound.rest;
 
 import com.miniecommerce.common.response.ApiResponse;
 import com.miniecommerce.inventory.adapter.inbound.rest.dto.PhoneImportFilterRequest;
+import com.miniecommerce.inventory.adapter.inbound.rest.dto.ApprovePhoneImportRequest;
 import com.miniecommerce.inventory.adapter.inbound.rest.utils.PhoneImportQueryParser;
 import com.miniecommerce.common.storage.UploadTempFileStagerReactor;
 import com.miniecommerce.inventory.app.command.ImportPhonesCommand;
+import com.miniecommerce.inventory.app.command.ApprovePhoneImportCommand;
 import com.miniecommerce.inventory.app.command.ListPhoneImportsCommand;
 import com.miniecommerce.inventory.app.port.inbound.phone.PhoneImportUseCase;
-import com.miniecommerce.inventory.domain.PhoneImportPojo.JobSubmission;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportPage;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStat;
 import org.springframework.http.HttpStatus;
@@ -57,7 +58,7 @@ public class PhoneImportController {
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public Mono<ApiResponse<JobSubmission>> upload(@RequestPart("file") FilePart file,
+    public Mono<ApiResponse<Long>> upload(@RequestPart("file") FilePart file,
                                                  @RequestPart("mode") String mode) {
         // Web adapter only translates transport types (FilePart -> temp Path, raw values -> command).
         // It owns the random temp file until the command is handed to the use case.
@@ -76,8 +77,10 @@ public class PhoneImportController {
 
     @PostMapping("/{importId}/approve")
     @ResponseStatus(HttpStatus.ACCEPTED)
-    public Mono<ApiResponse<Long>> approve(@PathVariable Long importId) {
-        return phoneImportUseCase.approve(importId)
+    public Mono<ApiResponse<Long>> approve(@PathVariable Long importId,
+            @RequestBody(required = false) ApprovePhoneImportRequest request) {
+        boolean warningSkip = request != null && request.warningSkip();
+        return phoneImportUseCase.approve(new ApprovePhoneImportCommand(importId, warningSkip))
                 .map(id -> ApiResponse.success(id, "Phone approval submitted"));
     }
 }

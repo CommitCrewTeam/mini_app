@@ -21,7 +21,5 @@ public interface PhoneJpaMapper {
 
     PhoneJpaEntity toEntity(Phone phone);
 
-    @Mapping(target = "id", ignore = true)
-    @Mapping(target = "version", ignore = true)
-    void copy(Phone source, @MappingTarget PhoneJpaEntity target);
+
 }

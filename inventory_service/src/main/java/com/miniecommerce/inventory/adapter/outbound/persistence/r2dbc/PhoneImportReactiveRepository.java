@@ -18,6 +18,7 @@ public interface PhoneImportReactiveRepository
             SELECT COUNT(d.id) AS total_count,
                    COUNT(CASE WHEN d.status = 'INVALID' THEN 1 END) AS fail_count,
                    COUNT(CASE WHEN d.status IN ('VALID') THEN 1 END) AS valid_count,
+                   COUNT(CASE WHEN d.status = 'WARNING' THEN 1 END) AS warning_count,
                    i.mode, i.status
             FROM phone_import i
             LEFT JOIN phone_draft d ON d.import_id = i.id

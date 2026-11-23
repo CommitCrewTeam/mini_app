@@ -3,10 +3,14 @@ package com.miniecommerce.inventory.domain;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
 import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportMatch;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
 public class PhoneDraft {
+
+    private static final List<PhoneDraftStatus> APPROVABLE_STATUSES =
+            List.of(PhoneDraftStatus.VALID, PhoneDraftStatus.WARNING);
 
     private Long id;
     /**
@@ -63,10 +67,11 @@ public class PhoneDraft {
             }
             return;
         }
-        // Re-validation always recomputes the Phone baseline; a value left over from a previous
-        // validation run must never survive into approval.
-        matchedVersion = null;
         errorMessage = null;
+        boolean warning = false;
+        if (!mode.requiresExistingPhone()) {
+            matchedVersion = null;
+        }
         if (duplicate) {
             errorMessage = "Duplicate key in import";
         } else if (key == null || key.isBlank()) {
@@ -78,17 +83,30 @@ public class PhoneDraft {
         } else if (mode != ImportMode.CREATE && match == null) {
             errorMessage = "Key does not exist in phone";
         } else if (match != null) {
-            // Capture the current Phone.version so approval can detect updates that happened
-            // after this validation and fail with a conflict instead of overwriting them.
-            matchedVersion = match.version();
+            if (mode.requiresExistingPhone()) {
+                if (matchedVersion == null) {
+                    matchedVersion = match.version();
+                } else if (!matchedVersion.equals(match.version())) {
+                    errorMessage = "Phone changed since previous validation; review before approval";
+                    warning = true;
+                }
+            }
         }
-        setStatus(errorMessage == null ? PhoneDraftStatus.VALID : PhoneDraftStatus.INVALID);
+        if (warning) {
+            setStatus(PhoneDraftStatus.WARNING);
+        } else {
+            setStatus(errorMessage == null ? PhoneDraftStatus.VALID : PhoneDraftStatus.INVALID);
+        }
     }
 
     private void requireValidForApproval() {
-        if (status != PhoneDraftStatus.VALID) {
+        if (!APPROVABLE_STATUSES.contains(status)) {
             throw new IllegalStateException("Draft is no longer valid after approval validation");
         }
+    }
+
+    public static List<PhoneDraftStatus> approvableStatuses() {
+        return APPROVABLE_STATUSES;
     }
 
     public void markApplied() {

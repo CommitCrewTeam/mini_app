@@ -5,12 +5,11 @@ import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneImportRe
 import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneRepositoryPort;
 import com.miniecommerce.inventory.domain.PhoneDraft;
 import com.miniecommerce.inventory.domain.PhoneImport;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportValidationContext;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
-import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportMatch;
 import java.util.List;
 import java.util.Objects;
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
@@ -39,23 +38,24 @@ public class PhoneImportValidationJob {
 
     public PhoneImportValidationJob(
             @Qualifier("batchImportSubmitter") BatchJobSubmitter submitter,
-            @Lazy @Qualifier("phoneValidateJob") Job validationJob,
+            @Lazy @Qualifier(PhoneImportUtils.VALIDATE_JOB) Job validationJob,
             BlockingPhoneImportRepositoryPort phoneImportRepository) {
         this.submitter = submitter;
         this.validationJob = validationJob;
         this.phoneImportRepository = phoneImportRepository;
     }
 
-    public Long submitValidation(Long id, ImportMode mode) {
+    public Long submitValidation(PhoneImportValidationContext context) {
+        Long id = context.importId();
         return submitter.submit(validationJob, new JobParametersBuilder()
                 .addLong("importId", id)
-                .addString("mode", mode.name())
+                .addString("mode", context.mode().name())
                 .toJobParameters(), () -> finishValidation(id, false)).getId();
     }
 
     private void finishValidation(Long id, boolean validationJobSucceeded) {
-        phoneImportRepository.writeValidationResult(id, validationJobSucceeded, PhoneDraftStatus.VALID,
-                PhoneImport.validationResultStatuses());
+        phoneImportRepository.writeValidationResult(id, validationJobSucceeded,
+                PhoneDraft.approvableStatuses(), PhoneImport.validationResultStatuses());
     }
 
     private JobExecutionListener statusListener() {
@@ -63,15 +63,15 @@ public class PhoneImportValidationJob {
             @Override
             public void afterJob(JobExecution execution) {
                 Long id = execution.getJobParameters().getLong("importId");
-                finishValidation(id, execution.getStatus() == BatchStatus.COMPLETED);
+                finishValidation(id, PhoneImportUtils.jobCompleted(execution));
             }
         };
     }
 
-    @Bean
+    @Bean(PhoneImportUtils.VALIDATE_JOB)
     public Job phoneValidateJob(JobRepository repository,
-            @Qualifier("phoneImportValidateStep") Step validateStep) {
-        return new JobBuilder("phoneValidateJob", repository).preventRestart()
+            @Qualifier(PhoneImportUtils.VALIDATE_STEP) Step validateStep) {
+        return new JobBuilder(PhoneImportUtils.VALIDATE_JOB, repository).preventRestart()
                 .listener(statusListener()).start(validateStep).build();
     }
 
@@ -104,8 +104,8 @@ public class PhoneImportValidationJob {
             var duplicates = phoneDraftRepository.findDuplicateKeys(importId, keys);
             var matches = phoneRepository.findImportMatchesByKeys(keys).stream()
                     .collect(java.util.stream.Collectors.toMap(PhoneImportMatch::key, match -> match));
-            // Validation stamps each valid draft with the Phone.version it matched here. Approval
-            // later compares that snapshot with a freshly read Phone before writing.
+            // The first valid match captures a Phone.version baseline. Revalidation marks a
+            // changed Phone as WARNING and keeps that original baseline for approval.
             rows.forEach(row -> row.validateForImport(importMode,
                     duplicates.contains(row.getKey()), matches.get(row.getKey())));
             return rows;
@@ -159,7 +159,7 @@ public class PhoneImportValidationJob {
      * Reusable validate step. Any job can use it via .next(validateStep), provided it is launched
      * with the same job parameters (importId, mode) that the step-scoped beans read.
      */
-    @Bean
+    @Bean(PhoneImportUtils.VALIDATE_STEP)
     public Step phoneImportValidateStep(
             JobRepository repository,
             @Qualifier("jpaTransactionManager")
@@ -172,7 +172,7 @@ public class PhoneImportValidationJob {
             ItemWriter<List<PhoneDraft>> validationWriter
     ) {
         return new StepBuilder(
-                "phoneImportValidateStep", repository
+                PhoneImportUtils.VALIDATE_STEP, repository
         )
                 // One Spring Batch item is one keyset page, so commit one page at a time.
                 .<List<PhoneDraft>, List<PhoneDraft>>chunk(1, transactionManager)

@@ -1,11 +1,14 @@
 package com.miniecommerce.inventory.app.service;
 
+import com.miniecommerce.inventory.app.command.ApprovePhoneImportCommand;
 import com.miniecommerce.inventory.app.command.ImportPhonesCommand;
 import com.miniecommerce.inventory.app.command.ListPhoneImportsCommand;
 import com.miniecommerce.inventory.app.mapper.PhoneImportListMapper;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportApprovalContext;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportIngestionContext;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportPage;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStat;
-import com.miniecommerce.inventory.domain.PhoneImportPojo.JobSubmission;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportValidationContext;
 import com.miniecommerce.inventory.domain.PhoneImport;
 import com.miniecommerce.common.exception.AppException;
 import com.miniecommerce.common.exception.ErrorCode;
@@ -16,11 +19,14 @@ import com.miniecommerce.inventory.app.job.SpringBatchPhoneImportJob;
 import com.miniecommerce.inventory.app.port.inbound.phone.PhoneImportUseCase;
 import com.miniecommerce.inventory.app.port.outbound.phone.PhoneImportRepositoryPort;
 import com.miniecommerce.inventory.utils.BlockingTasks;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 
 @Service
 public class PhoneImportApplicationService implements PhoneImportUseCase {
+    private static final Logger log = LoggerFactory.getLogger(PhoneImportApplicationService.class);
 
     private final SpringBatchPhoneImportJob importJob;
     private final ApproveImportJob approveJob;
@@ -74,12 +80,16 @@ public class PhoneImportApplicationService implements PhoneImportUseCase {
                             .switchIfEmpty(Mono.error(new AppException(
                                     ErrorCode.NOT_FOUND, "Phone import not found")));
                 })
-                .transform(blockingTasks::continueOnBlockingThread)
-                .map(phoneImport -> validationJob.submitValidation(importId, phoneImport.getMode()));
+                .flatMap(phoneImport -> Mono.just(importId)
+                        .doAfterTerminate(() -> blockingTasks.runInBackground(
+                                () -> validationJob.submitValidation(
+                                        new PhoneImportValidationContext(importId, phoneImport.getMode())),
+                                error -> log.error("Cannot submit validation for import {}", importId, error))));
     }
 
     @Override
-    public Mono<Long> approve(Long importId) {
+    public Mono<Long> approve(ApprovePhoneImportCommand command) {
+        Long importId = command.importId();
         var transition = PhoneImport.approvalStartTransition();
         return phoneImportRepository.writeStatusIfStatusIn(importId,
                         transition.allowedStatuses(), transition.nextStatus())
@@ -91,16 +101,23 @@ public class PhoneImportApplicationService implements PhoneImportUseCase {
                             .switchIfEmpty(Mono.error(new AppException(
                                     ErrorCode.NOT_FOUND, "Phone import not found")));
                 })
-                .transform(blockingTasks::continueOnBlockingThread)
-                .map(phoneImport -> approveJob.submit(importId, phoneImport.getMode()).getId());
+                .flatMap(phoneImport -> Mono.just(importId)
+                        .doAfterTerminate(() -> blockingTasks.runInBackground(
+                                () -> approveJob.submit(new PhoneImportApprovalContext(
+                                        importId, phoneImport.getMode(), command.warningSkip())),
+                                error -> log.error("Cannot submit approval for import {}", importId, error))));
     }
 
     @Override
-    public Mono<JobSubmission> importFile(ImportPhonesCommand command) {
-        return phoneImportRepository.save(PhoneImport.pending(command.mode()))
-                .transform(blockingTasks::continueOnBlockingThread)
-                .map(saved -> new JobSubmission(saved.getId(),
-                        importJob.submit(saved, command.file()).getId()))
+    public Mono<Long> importFile(ImportPhonesCommand command) {
+        return phoneImportRepository.save(PhoneImport.uploading(command.mode()))
+                .flatMap(saved -> Mono.just(saved.getId())
+                        // Emit the ID and completion before handing off job submission.
+                        .doAfterTerminate(() -> blockingTasks.runInBackground(
+                                () -> importJob.submit(new PhoneImportIngestionContext(saved, command.file())),
+                                error ->
+                                        log.error("Cannot submit import {}", saved.getId(), error))))
                 .doOnError(error -> fileUtil.deleteQuietly(command.file()));
     }
+
 }

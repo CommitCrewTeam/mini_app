@@ -1,65 +1,64 @@
+# Local gateway configuration; Config Server is not required.
 server:
-  port: 8080
-
-app:
-  api-prefix: /api/v1
+  port: 6002
 
 spring:
   application:
     name: api_gateway
   cloud:
     config:
-      # Gateway uses the routes below, not Config Server.
       enabled: false
     gateway:
       httpclient:
         connect-timeout: 3000
-        response-timeout: 5s
+        response-timeout: 120s
       default-filters:
-        - StripPrefix=2
+        - StripPrefix=1
       routes:
-        # auth_service
-        - id: auth-service
-          uri: ${AUTH_SERVICE_URL:http://localhost:8091}
+        - id: auth_service
+          uri: ${AUTH_SERVICE_URL:http://localhost:6003}
           predicates:
-            - Path=${app.api-prefix}/auth/**
-
-        # auth_service also owns role assignment: /api/v1/users/{userId}/roles
-        # Must be declared before the broader /api/v1/users/** route.
-        - id: auth-user-roles
-          uri: ${AUTH_SERVICE_URL:http://localhost:8091}
+            - Path=/auth_service/api/v1/**
+        - id: inventory_service
+          uri: ${INVENTORY_SERVICE_URL:http://localhost:6004}
           predicates:
-            - Path=${app.api-prefix}/users/*/roles
-
-        # user_service
-        - id: user-service
-          uri: ${USER_SERVICE_URL:http://localhost:8087}
+            - Path=/inventory_service/api/v1/**
+        - id: order_service
+          uri: ${ORDER_SERVICE_URL:http://localhost:6005}
           predicates:
-            - Path=${app.api-prefix}/users/**
-
-        # order_service
-        - id: order-service
-          uri: ${ORDER_SERVICE_URL:http://localhost:8083}
+            - Path=/order_service/api/v1/**
+        - id: payment_service
+          uri: ${PAYMENT_SERVICE_URL:http://localhost:6006}
           predicates:
-            - Path=${app.api-prefix}/orders/**
-
-        # inventory_service
-        - id: inventory-service
-          uri: ${INVENTORY_SERVICE_URL:http://localhost:8082}
+            - Path=/payment_service/api/v1/**
+        - id: shipping_service
+          uri: ${SHIPPING_SERVICE_URL:http://localhost:6007}
           predicates:
-            - Path=${app.api-prefix}/phones/**
-
-        # payment_service
-        - id: payment-service
-          uri: ${PAYMENT_SERVICE_URL:http://localhost:8088}
+            - Path=/shipping_service/api/v1/**
+        - id: product_service
+          uri: ${PRODUCT_SERVICE_URL:http://localhost:6008}
           predicates:
-            - Path=${app.api-prefix}/payment-methods/**
-
-        # shipping_service
-        - id: shipping-service
-          uri: ${SHIPPING_SERVICE_URL:http://localhost:8084}
+            - Path=/product_service/api/v1/**
+        - id: user_service
+          uri: ${USER_SERVICE_URL:http://localhost:6009}
           predicates:
-            - Path=${app.api-prefix}/shipping-methods/**
+            - Path=/user_service/api/v1/**
+        - id: plan_service
+          uri: ${PLAN_SERVICE_URL:http://localhost:6010}
+          predicates:
+            - Path=/plan_service/api/v1/**
+        - id: pricing_service
+          uri: ${PRICING_SERVICE_URL:http://localhost:6011}
+          predicates:
+            - Path=/pricing_service/api/v1/**
+        - id: notification_service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:6012}
+          predicates:
+            - Path=/notification_service/api/v1/**
+        - id: analytics_service
+          uri: ${ANALYTICS_SERVICE_URL:http://localhost:6013}
+          predicates:
+            - Path=/analytics_service/api/v1/**
 
 management:
   endpoints:
@@ -69,9 +68,3 @@ management:
   endpoint:
     gateway:
       enabled: true
-    health:
-      show-details: always
-
-logging:
-  level:
-    org.springframework.cloud.gateway: INFO

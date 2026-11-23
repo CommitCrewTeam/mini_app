@@ -1,8 +1,9 @@
 package com.miniecommerce.inventory.adapter.outbound.persistence.jpa;
 
 import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneImportRepositoryPort;
-import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStatuses;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportCASStatuses;
 import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
+import java.util.List;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -14,15 +15,16 @@ public class BlockingPhoneImportRepositoryAdapter implements BlockingPhoneImport
     }
 
     @Override
-    public boolean writeStatusResult(Long id, boolean operationSucceeded, PhoneImportStatuses statuses, String error) {
-        return repository.writeStatusResult(id, operationSucceeded, statuses.checkStatus().name(),
-                statuses.successStatus().name(), statuses.failureStatus().name(), error) == 1;
+    public boolean writeStatusResult(Long id, boolean operationSucceeded, PhoneImportCASStatuses statuses, String error) {
+        return repository.writeStatusResult(id, operationSucceeded, statuses, error) == 1;
     }
 
     @Override
-    public boolean writeValidationResult(Long id, boolean operationSucceeded, PhoneDraftStatus validDraftStatus,
-            PhoneImportStatuses statuses) {
-        return repository.writeValidationResult(id, operationSucceeded, validDraftStatus.name(),
-                statuses.checkStatus().name(), statuses.successStatus().name(), statuses.failureStatus().name()) == 1;
+    public boolean writeValidationResult(Long id, boolean operationSucceeded,
+            List<PhoneDraftStatus> approvableDraftStatuses,
+            PhoneImportCASStatuses statuses) {
+        return repository.writeValidationResult(id, operationSucceeded,
+                approvableDraftStatuses.stream().map(Enum::name).toList(),
+                statuses) == 1;
     }
 }

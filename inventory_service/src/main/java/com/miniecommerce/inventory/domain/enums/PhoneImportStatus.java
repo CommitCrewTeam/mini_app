@@ -1,24 +1,22 @@
 package com.miniecommerce.inventory.domain.enums;
 
 public enum PhoneImportStatus {
-    /** Initial CSV ingestion and validation are running. */
-    PENDING,
-    /** Ingestion finished; one explicit validation or approval may start. */
-    READY,
-    /** The explicit validation job is running. */
-    VALIDATING,
+    /** Upload job is running. */
+    UPLOAD_IN_PROGRESS,
+    /** Upload job failed. */
+    UPLOAD_FAILED,
+    /** Explicit validation job is running. */
+    VALIDATE_IN_PROGRESS,
     /** Explicit validation passed; only approval may start. */
-    VALIDATED,
+    VALIDATE_SUCCEEDED,
+    /** Explicit validation failed. */
+    VALIDATE_FAILED,
     /** Approval validation and application are running. */
-    APPROVING,
-    /** Approval completed; terminal state. */
-    DONE,
-    /** CSV ingestion failed before the import became READY. */
-    INGESTION_FAILED,
-    /** Explicit validation failed, including invalid drafts or a failed job submission. */
-    VALIDATION_FAILED,
-    /** Approval failed during normal processing. */
-    APPROVAL_FAILED,
-    /** Approval was stopped because the validation gate found invalid drafts. */
-    APPROVAL_VALIDATED_FAILED
+    APPROVE_IN_PROGRESS,
+    /** Approval completed successfully; terminal state. */
+    APPROVE_SUCCEEDED,
+    /** Approval failed, including drafts rejected by its validation gate. */
+    APPROVE_FAILED,
+    /** Approval's validation gate rejected the drafts before applying any phone. */
+    APPROVE_VALIDATION_FAILED
 }

@@ -3,6 +3,7 @@ package com.miniecommerce.inventory.domain;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
 import com.miniecommerce.inventory.domain.enums.PhoneImportStatus;
+import java.nio.file.Path;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -10,21 +11,29 @@ import java.util.List;
 public final class PhoneImportPojo {
     private PhoneImportPojo() { }
 
-    /** Only VALID rows count as valid; all draft statuses count toward total. */
+    /** WARNING rows are reported separately from both valid and invalid rows. */
     public record PhoneImportStat(
             @JsonProperty("total_count") long totalCount,
             @JsonProperty("fail_count") long failCount,
             @JsonProperty("valid_count") long validCount,
+            @JsonProperty("warning_count") long warningCount,
             ImportMode mode,
             PhoneImportStatus status) { }
 
-    public record JobSubmission(Long importId, Long jobExecutionId) { }
+    public record PhoneDraftApprovalSummary(long totalDrafts, long validDrafts, long warningDrafts,
+            long invalidDrafts) { }
+
+    public record PhoneImportIngestionContext(PhoneImport phoneImport, Path inputFile) { }
+
+    public record PhoneImportValidationContext(Long importId, ImportMode mode) { }
+
+    public record PhoneImportApprovalContext(Long importId, ImportMode mode, boolean warningSkip) { }
 
     public record PhoneImportStatusTransition(
             List<PhoneImportStatus> allowedStatuses,
             PhoneImportStatus nextStatus) { }
 
-    public record PhoneImportStatuses(
+    public record PhoneImportCASStatuses(
             PhoneImportStatus checkStatus,
             PhoneImportStatus successStatus,
             PhoneImportStatus failureStatus) { }

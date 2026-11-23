@@ -3,6 +3,7 @@ package com.miniecommerce.inventory.domain;
 import com.miniecommerce.common.exception.AppException;
 import com.miniecommerce.common.exception.ErrorCode;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
+import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,21 +44,23 @@ public class Phone {
      *
      * <p>For UPDATE/RESTOCK {@code snapshot} is the Phone read inside the approval transaction,
      * and the draft's {@code matchedVersion} (captured during validation) must still equal the
-     * snapshot's {@link #version}; otherwise the phone changed since validation and the approval
-     * is rejected with a conflict. The change is applied to the snapshot in place so the
-     * optimistic-lock version that was read is the same one the save checks and increments.</p>
+     * snapshot's {@link #version}, unless the draft is WARNING and the user explicitly accepted
+     * warnings. The change is applied to the snapshot in place so optimistic locking still
+     * detects changes made after this snapshot was read.</p>
      *
      * <p>For CREATE no snapshot exists and a brand-new inactive Phone is built from the draft.</p>
      */
-    public static Phone prepareImportChange(ImportMode mode, PhoneDraft draft, Phone snapshot) {
+    public static Phone prepareImportChange(
+            ImportMode mode, PhoneDraft draft, Phone snapshot, boolean warningSkip) {
         if (!mode.requiresExistingPhone()) {
             return fromImport(draft.getKey(), draft.getDetail(), draft.getQuantity());
         }
         if (snapshot == null) {
             throw new AppException(ErrorCode.NOT_FOUND, "Phone not found");
         }
-        if (draft.getMatchedVersion() == null
-                || !draft.getMatchedVersion().equals(snapshot.getVersion())) {
+        boolean acceptedStaleWarning = draft.getStatus() == PhoneDraftStatus.WARNING && warningSkip;
+        if (!acceptedStaleWarning && (draft.getMatchedVersion() == null
+                || !draft.getMatchedVersion().equals(snapshot.getVersion()))) {
             throw new AppException(ErrorCode.CONFLICT, "Phone changed after approval validation");
         }
         // The snapshot was read for this transaction only, so change it in place.

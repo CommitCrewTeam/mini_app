@@ -19,7 +19,7 @@ public class WebClientConfig {
     @Bean
     public WebClient authServiceWebClient(
             WebClient.Builder webClientBuilder,
-            @Value("${AUTH_SERVICE_URL:http://localhost:8091}") String authServiceUrl
+            @Value("${AUTH_SERVICE_URL:http://localhost:6003}") String authServiceUrl
     ) {
         return webClientBuilder
                 .baseUrl(authServiceUrl)

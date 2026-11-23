@@ -7,10 +7,10 @@ import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneImportRe
 import com.miniecommerce.inventory.domain.PhoneDraft;
 import com.miniecommerce.inventory.domain.PhoneImport;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportSourceRow;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportIngestionContext;
 
 import java.nio.file.Path;
 
-import org.springframework.batch.core.BatchStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
@@ -45,7 +45,7 @@ public class SpringBatchPhoneImportJob {
 
     public SpringBatchPhoneImportJob(
             @Qualifier("batchImportSubmitter") BatchJobSubmitter submitter,
-            @Lazy @Qualifier("phoneImportJob") Job job,
+            @Lazy @Qualifier(PhoneImportUtils.UPLOAD_JOB) Job job,
             BlockingPhoneImportRepositoryPort phoneImportRepository,
             FileUtil fileUtil
     ) {
@@ -56,7 +56,9 @@ public class SpringBatchPhoneImportJob {
         this.csvTokenizer.setNames("key", "detail", "quantity");
     }
 
-    public JobExecution submit(PhoneImport phoneImport, Path input) {
+    public JobExecution submit(PhoneImportIngestionContext context) {
+        PhoneImport phoneImport = context.phoneImport();
+        Path input = context.inputFile();
         return submitter.submit(job, new JobParametersBuilder()
                 .addLong("importId", phoneImport.getId())
                 .addString("mode", phoneImport.getMode().name())
@@ -72,7 +74,7 @@ public class SpringBatchPhoneImportJob {
 
     private void writeImportResult(Long id, boolean importJobSucceeded) {
         phoneImportRepository.writeStatusResult(id, importJobSucceeded,
-                PhoneImport.ingestionResultStatuses(), null);
+                PhoneImport.uploadResultStatuses(), null);
     }
 
     private JobExecutionListener statusListener() {
@@ -81,7 +83,15 @@ public class SpringBatchPhoneImportJob {
             public void afterJob(JobExecution execution) {
                 Long id = execution.getJobParameters().getLong("importId");
                 try {
-                    writeImportResult(id, execution.getStatus() == BatchStatus.COMPLETED);
+                    boolean uploadSucceeded = PhoneImportUtils.stepCompleted(
+                            execution, PhoneImportUtils.UPLOAD_STEP);
+                    if (!uploadSucceeded) {
+                        writeImportResult(id, false);
+                        return;
+                    }
+                    phoneImportRepository.writeValidationResult(id,
+                            PhoneImportUtils.jobCompleted(execution),
+                            PhoneDraft.approvableStatuses(), PhoneImport.uploadValidationResultStatuses());
                 } finally {
                     // The job runs in the background, so it is the only owner of the file from here on.
                     fileUtil.deleteQuietly(execution.getJobParameters().getString("inputFile"));
@@ -131,8 +141,8 @@ public class SpringBatchPhoneImportJob {
         return chunk -> phoneDraftRepository.saveAll(importId, chunk.getItems());
     }
 
-    @Bean
-    public Job phoneImportJob(
+    @Bean(PhoneImportUtils.UPLOAD_JOB)
+    public Job phoneUploadJob(
             JobRepository repository,
             @Qualifier("jpaTransactionManager")
             PlatformTransactionManager transactionManager,
@@ -142,11 +152,11 @@ public class SpringBatchPhoneImportJob {
             ItemWriter<PhoneDraft> writer,
             @Qualifier("phoneDraftProcessor")
             ItemProcessor<PhoneImportSourceRow, PhoneDraft> processor,
-            @Qualifier("phoneImportValidateStep")
+            @Qualifier(PhoneImportUtils.VALIDATE_STEP)
             Step validateStep
     ) {
-        Step ingest = new StepBuilder(
-                "phoneImportIngestStep", repository
+        Step upload = new StepBuilder(
+                PhoneImportUtils.UPLOAD_STEP, repository
         )
                 .<PhoneImportSourceRow, PhoneDraft>chunk(
                         500, transactionManager
@@ -156,10 +166,10 @@ public class SpringBatchPhoneImportJob {
                 .writer(writer)
                 .build();
 
-        return new JobBuilder("phoneImportJob", repository)
+        return new JobBuilder(PhoneImportUtils.UPLOAD_JOB, repository)
                 .preventRestart()
                 .listener(statusListener())
-                .start(ingest)
+                .start(upload)
                 .next(validateStep)
                 .build();
     }

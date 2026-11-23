@@ -7,24 +7,24 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.miniecommerce.inventory.adapter.outbound.persistence.jpa.entity.PhoneImportJpaEntity;
+import java.util.Collection;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportCASStatuses;
 
 public interface PhoneImportJpaRepository extends JpaRepository<PhoneImportJpaEntity, Long> {
     @Modifying
     @Transactional
     @Query("""
             UPDATE PhoneImportJpaEntity i
-            SET i.status = CASE WHEN :operationSucceeded = true THEN :successStatus ELSE :failureStatus END,
+            SET i.status = CASE WHEN :operationSucceeded = true THEN :#{#statuses.successStatus().name()} ELSE :#{#statuses.failureStatus().name()} END,
                 i.error = :error,
                 i.version = i.version + 1,
                 i.updatedAt = CURRENT_TIMESTAMP
-            WHERE i.id = :id AND i.status = :checkStatus
+            WHERE i.id = :id AND i.status = :#{#statuses.checkStatus().name()}
             """)
     int writeStatusResult(
             @Param("id") Long id,
             @Param("operationSucceeded") boolean operationSucceeded,
-            @Param("checkStatus") String checkStatus,
-            @Param("successStatus") String successStatus,
-            @Param("failureStatus") String failureStatus,
+            @Param("statuses") PhoneImportCASStatuses statuses,
             @Param("error") String error);
 
     @Modifying
@@ -36,21 +36,20 @@ public interface PhoneImportJpaRepository extends JpaRepository<PhoneImportJpaEn
                          AND EXISTS (SELECT 1 FROM phone_draft d WHERE d.import_id = i.id)
                          AND NOT EXISTS (
                              SELECT 1 FROM phone_draft d
-                             WHERE d.import_id = i.id AND d.status <> :validDraftStatus
+                             WHERE d.import_id = i.id
+                               AND d.status NOT IN (:approvableDraftStatuses)
                          )
-                    THEN :successStatus
-                    ELSE :failureStatus
+                    THEN :#{#statuses.successStatus().name()}
+                    ELSE :#{#statuses.failureStatus().name()}
                 END,
                 version = version + 1,
                 updated_at = CURRENT_TIMESTAMP
-            WHERE i.id = :id AND i.status = :checkStatus
+            WHERE i.id = :id AND i.status = :#{#statuses.checkStatus().name()}
             """, nativeQuery = true)
     int writeValidationResult(
             @Param("id") Long id,
             @Param("validationJobSucceeded") boolean validationJobSucceeded,
-            @Param("validDraftStatus") String validDraftStatus,
-            @Param("checkStatus") String checkStatus,
-            @Param("successStatus") String successStatus,
-            @Param("failureStatus") String failureStatus);
+            @Param("approvableDraftStatuses") Collection<String> approvableDraftStatuses,
+            @Param("statuses") PhoneImportCASStatuses statuses);
 
 }

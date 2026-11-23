@@ -1,17 +1,17 @@
 package com.miniecommerce.inventory.app.job;
 
 import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneDraftRepositoryPort;
-import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneRepositoryPort;
 import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneImportRepositoryPort;
-import com.miniecommerce.inventory.domain.PhoneImport;
+import com.miniecommerce.inventory.app.port.outbound.phone.BlockingPhoneRepositoryPort;
 import com.miniecommerce.inventory.domain.Phone;
 import com.miniecommerce.inventory.domain.PhoneDraft;
-import com.miniecommerce.inventory.domain.enums.PhoneImportStatus;
+import com.miniecommerce.inventory.domain.PhoneImport;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportApprovalContext;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import org.springframework.batch.core.BatchStatus;
+import java.util.UUID;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobExecutionListener;
@@ -38,23 +38,28 @@ public class ApproveImportJob {
     private static final String IMPORT_ID = "importId";
     private static final int APPROVAL_CHUNK_SIZE = 500;
 
+    private enum Gate { APPROVABLE, VALIDATION_INVALID, WARNINGS_UNCONFIRMED }
+
     private final BatchJobSubmitter submitter;
     private final Job approvalJob;
     private final BlockingPhoneImportRepositoryPort phoneImportRepository;
 
     public ApproveImportJob(
             @Qualifier("batchImportSubmitter") BatchJobSubmitter submitter,
-            @Qualifier("phoneApproveJob") Job approvalJob,
+            @Qualifier(PhoneImportUtils.APPROVE_JOB) Job approvalJob,
             BlockingPhoneImportRepositoryPort phoneImportRepository) {
         this.submitter = submitter;
         this.approvalJob = approvalJob;
         this.phoneImportRepository = phoneImportRepository;
     }
 
-    public JobExecution submit(Long importId, ImportMode mode) {
+    public JobExecution submit(PhoneImportApprovalContext context) {
+        Long importId = context.importId();
         return submitter.submit(approvalJob, new JobParametersBuilder()
                 .addLong(IMPORT_ID, importId)
-                .addString("mode", mode.name())
+                .addString("mode", context.mode().name())
+                .addString("warningSkip", Boolean.toString(context.warningSkip()))
+                .addString("attempt", UUID.randomUUID().toString())
                 .toJobParameters(),
                 () -> writeApprovalResult(phoneImportRepository, importId, false, "system exception"));
     }
@@ -65,7 +70,7 @@ public class ApproveImportJob {
     }
 
     private static void applyBlockingChunk(BlockingPhoneDraftRepositoryPort drafts,
-            BlockingPhoneRepositoryPort phones, Long importId, ImportMode mode,
+            BlockingPhoneRepositoryPort phones, Long importId, ImportMode mode, boolean warningSkip,
             List<? extends PhoneDraft> readDrafts) {
         if (readDrafts.isEmpty()) return;
         var phoneKeys = readDrafts.stream().map(PhoneDraft::getKey).distinct().toList();
@@ -73,7 +78,7 @@ public class ApproveImportJob {
                 ? phones.findByKeys(phoneKeys).stream().collect(java.util.stream.Collectors.toMap(Phone::getKey, p -> p))
                 : Map.of();
         var changed = readDrafts.stream().map(draft ->
-                Phone.prepareImportChange(mode, draft, phonesByKey.get(draft.getKey()))).toList();
+                Phone.prepareImportChange(mode, draft, phonesByKey.get(draft.getKey()), warningSkip)).toList();
         phones.saveChanges(changed);
         readDrafts.forEach(PhoneDraft::markApplied);
         drafts.saveAll(importId, readDrafts);
@@ -96,64 +101,80 @@ public class ApproveImportJob {
         public ItemWriter<PhoneDraft> phoneApprovalWriter(
                 @Value("#{jobParameters['importId']}") Long importId,
                 @Value("#{jobParameters['mode']}") String mode,
+                @Value("#{jobParameters['warningSkip']}") boolean warningSkip,
                 BlockingPhoneDraftRepositoryPort phoneDraftRepository,
                 BlockingPhoneRepositoryPort phoneRepository) {
             ImportMode importMode = ImportMode.valueOf(mode);
-            return chunk -> applyBlockingChunk(phoneDraftRepository, phoneRepository, importId, importMode,
+            return chunk -> applyBlockingChunk(phoneDraftRepository, phoneRepository, importId, importMode, warningSkip,
                     chunk.getItems());
         }
 
-        @Bean
+        @Bean(PhoneImportUtils.APPROVE_STEP)
         public Step phoneApprovalStep(JobRepository repository,
                 @Qualifier("jpaTransactionManager") PlatformTransactionManager transactionManager,
                 @Qualifier("phoneApprovalReader") ItemReader<PhoneDraft> reader,
                 @Qualifier("phoneApprovalWriter") ItemWriter<PhoneDraft> writer) {
-            return new StepBuilder("phoneApprovalStep", repository)
+            return new StepBuilder(PhoneImportUtils.APPROVE_STEP, repository)
                     .<PhoneDraft, PhoneDraft>chunk(APPROVAL_CHUNK_SIZE, transactionManager)
                     .reader(reader)
                     .writer(writer).build();
         }
 
-        private JobExecutionDecider phoneApprovalValidationGate(BlockingPhoneDraftRepositoryPort phoneDraftRepository) {
+        private JobExecutionDecider approvalGate(BlockingPhoneDraftRepositoryPort phoneDraftRepository) {
             return (execution, stepExecution) -> {
                 Long id = execution.getJobParameters().getLong(IMPORT_ID);
-                boolean allDraftsValid = phoneDraftRepository.allValid(id);
-                return new FlowExecutionStatus(
-                        (allDraftsValid ? PhoneImportStatus.VALIDATED : PhoneImportStatus.VALIDATION_FAILED).name());
+                var summary = phoneDraftRepository.summarizeForApproval(id);
+                Gate outcome;
+                if (!PhoneImport.isValidationValid(summary)) {
+                    outcome = Gate.VALIDATION_INVALID;
+                } else if (PhoneImport.isRequiresWarningConfirmation(summary) && !isWarningSkip(execution)) {
+                    outcome = Gate.WARNINGS_UNCONFIRMED;
+                } else {
+                    outcome = Gate.APPROVABLE;
+                }
+                return new FlowExecutionStatus(outcome.name());
             };
         }
 
-        private JobExecutionListener phoneApprovalListener(BlockingPhoneImportRepositoryPort phoneImportRepository) {
+        private JobExecutionListener approvalListener(BlockingPhoneImportRepositoryPort phoneImportRepository) {
             return new JobExecutionListener() {
                 @Override
                 public void afterJob(JobExecution execution) {
                     Long id = execution.getJobParameters().getLong(IMPORT_ID);
-                    boolean validationFailed = PhoneImportStatus.APPROVAL_VALIDATED_FAILED.name()
-                            .equals(execution.getExitStatus().getExitCode());
-                    boolean succeeded = execution.getStatus() == BatchStatus.COMPLETED && !validationFailed;
-                    var statuses = validationFailed
-                            ? PhoneImport.approvalValidationFailedStatuses()
-                            : PhoneImport.approvalResultStatuses();
-                    phoneImportRepository.writeStatusResult(id, succeeded, statuses,
-                            validationFailed ? "validate failed" : null);
+                    String exitCode = execution.getExitStatus().getExitCode();
+                    if (Gate.WARNINGS_UNCONFIRMED.name().equals(exitCode)) {
+                        phoneImportRepository.writeStatusResult(id, false,
+                                PhoneImport.approvalWarningConfirmationStatuses(),
+                                "Set warningSkip=true to approve warning drafts");
+                    } else if (Gate.VALIDATION_INVALID.name().equals(exitCode)) {
+                        phoneImportRepository.writeStatusResult(id, false,
+                                PhoneImport.approvalValidationFailedStatuses(), "validate failed");
+                    } else {
+                        phoneImportRepository.writeStatusResult(id, PhoneImportUtils.jobCompleted(execution),
+                                PhoneImport.approvalResultStatuses(), null);
+                    }
                 }
             };
         }
 
-        @Bean
+        private static boolean isWarningSkip(JobExecution execution) {
+            return Boolean.parseBoolean(execution.getJobParameters().getString("warningSkip", "false"));
+        }
+
+        @Bean(PhoneImportUtils.APPROVE_JOB)
         public Job phoneApproveJob(JobRepository repository,
-                @Qualifier("phoneImportValidateStep") Step validateStep,
-                @Qualifier("phoneApprovalStep") Step approvalStep,
+                @Qualifier(PhoneImportUtils.VALIDATE_STEP) Step validateStep,
+                @Qualifier(PhoneImportUtils.APPROVE_STEP) Step approvalStep,
                 BlockingPhoneDraftRepositoryPort phoneDraftRepository,
                 BlockingPhoneImportRepositoryPort phoneImportRepository) {
-            JobExecutionDecider validationGate = phoneApprovalValidationGate(phoneDraftRepository);
-            return new JobBuilder("phoneApproveJob", repository)
+            JobExecutionDecider gate = approvalGate(phoneDraftRepository);
+            return new JobBuilder(PhoneImportUtils.APPROVE_JOB, repository)
                     .preventRestart()
-                    .listener(phoneApprovalListener(phoneImportRepository))
+                    .listener(approvalListener(phoneImportRepository))
                     .start(validateStep)
-                    .next(validationGate).on(PhoneImportStatus.VALIDATED.name()).to(approvalStep)
-                    .from(validationGate).on(PhoneImportStatus.VALIDATION_FAILED.name())
-                    .end(PhoneImportStatus.APPROVAL_VALIDATED_FAILED.name())
+                    .next(gate).on(Gate.APPROVABLE.name()).to(approvalStep)
+                    .from(gate).on(Gate.VALIDATION_INVALID.name()).end(Gate.VALIDATION_INVALID.name())
+                    .from(gate).on(Gate.WARNINGS_UNCONFIRMED.name()).end(Gate.WARNINGS_UNCONFIRMED.name())
                     .end()
                     .build();
         }

@@ -1,7 +1,8 @@
 package com.miniecommerce.inventory.domain;
 
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStatusTransition;
-import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStatuses;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportCASStatuses;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneDraftApprovalSummary;
 import com.miniecommerce.inventory.domain.enums.ImportMode;
 import com.miniecommerce.inventory.domain.enums.PhoneImportStatus;
 import java.time.OffsetDateTime;
@@ -31,40 +32,62 @@ public class PhoneImport {
         this.updatedAt = updatedAt;
     }
 
-    public static PhoneImport pending(ImportMode mode) {
+    public static PhoneImport uploading(ImportMode mode) {
         var now = OffsetDateTime.now();
-        return new PhoneImport(null, PhoneImportStatus.PENDING, mode, null, null, now, now);
+        return new PhoneImport(null, PhoneImportStatus.UPLOAD_IN_PROGRESS, mode, null, null, now, now);
     }
 
     public static PhoneImportStatusTransition validationStartTransition() {
         return new PhoneImportStatusTransition(
-                List.of(PhoneImportStatus.READY), PhoneImportStatus.VALIDATING);
+                List.of(PhoneImportStatus.VALIDATE_SUCCEEDED), PhoneImportStatus.VALIDATE_IN_PROGRESS);
     }
 
     public static PhoneImportStatusTransition approvalStartTransition() {
         return new PhoneImportStatusTransition(
-                List.of(PhoneImportStatus.READY, PhoneImportStatus.VALIDATED), PhoneImportStatus.APPROVING);
+                List.of(PhoneImportStatus.VALIDATE_SUCCEEDED), PhoneImportStatus.APPROVE_IN_PROGRESS);
     }
 
-    public static PhoneImportStatuses ingestionResultStatuses() {
-        return new PhoneImportStatuses(
-                PhoneImportStatus.PENDING, PhoneImportStatus.READY, PhoneImportStatus.INGESTION_FAILED);
+    public static PhoneImportCASStatuses uploadResultStatuses() {
+        return new PhoneImportCASStatuses(
+                PhoneImportStatus.UPLOAD_IN_PROGRESS, PhoneImportStatus.VALIDATE_SUCCEEDED,
+                PhoneImportStatus.UPLOAD_FAILED);
     }
 
-    public static PhoneImportStatuses validationResultStatuses() {
-        return new PhoneImportStatuses(
-                PhoneImportStatus.VALIDATING, PhoneImportStatus.VALIDATED, PhoneImportStatus.VALIDATION_FAILED);
+    public static PhoneImportCASStatuses uploadValidationResultStatuses() {
+        return new PhoneImportCASStatuses(
+                PhoneImportStatus.UPLOAD_IN_PROGRESS, PhoneImportStatus.VALIDATE_SUCCEEDED,
+                PhoneImportStatus.VALIDATE_FAILED);
     }
 
-    public static PhoneImportStatuses approvalResultStatuses() {
-        return new PhoneImportStatuses(
-                PhoneImportStatus.APPROVING, PhoneImportStatus.DONE, PhoneImportStatus.APPROVAL_FAILED);
+    public static PhoneImportCASStatuses validationResultStatuses() {
+        return new PhoneImportCASStatuses(
+                PhoneImportStatus.VALIDATE_IN_PROGRESS, PhoneImportStatus.VALIDATE_SUCCEEDED, PhoneImportStatus.VALIDATE_FAILED);
     }
 
-    public static PhoneImportStatuses approvalValidationFailedStatuses() {
-        return new PhoneImportStatuses(
-                PhoneImportStatus.APPROVING, PhoneImportStatus.DONE,
-                PhoneImportStatus.APPROVAL_VALIDATED_FAILED);
+    public static PhoneImportCASStatuses approvalResultStatuses() {
+        return new PhoneImportCASStatuses(
+                PhoneImportStatus.APPROVE_IN_PROGRESS, PhoneImportStatus.APPROVE_SUCCEEDED, PhoneImportStatus.APPROVE_FAILED);
+    }
+
+    public static PhoneImportCASStatuses approvalValidationFailedStatuses() {
+        return new PhoneImportCASStatuses(
+                PhoneImportStatus.APPROVE_IN_PROGRESS, PhoneImportStatus.APPROVE_SUCCEEDED,
+                PhoneImportStatus.APPROVE_VALIDATION_FAILED);
+    }
+
+    public static PhoneImportCASStatuses approvalWarningConfirmationStatuses() {
+        return new PhoneImportCASStatuses(
+                PhoneImportStatus.APPROVE_IN_PROGRESS, PhoneImportStatus.APPROVE_SUCCEEDED, PhoneImportStatus.VALIDATE_SUCCEEDED);
+    }
+
+    /** After validation, an import needs at least one draft and no INVALID drafts. */
+    public static boolean isValidationValid(PhoneDraftApprovalSummary summary) {
+        return summary.totalDrafts() > 0 && summary.invalidDrafts() == 0;
+    }
+
+    /** WARNING drafts need explicit user acceptance before they are applied. */
+    public static boolean isRequiresWarningConfirmation(PhoneDraftApprovalSummary summary) {
+        return summary.warningDrafts() > 0;
     }
 
     public Long getId() {

@@ -2,7 +2,7 @@ package com.miniecommerce.inventory.app.port.outbound.phone;
 
 import com.miniecommerce.common.query.Filter;
 import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStat;
-import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportStatuses;
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportCASStatuses;
 
 import com.miniecommerce.inventory.domain.PhoneImport;
 import com.miniecommerce.inventory.domain.enums.PhoneDraftStatus;
