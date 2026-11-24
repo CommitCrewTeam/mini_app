@@ -9,6 +9,8 @@ import java.util.List;
 
 /** Shared data carriers for the phone import workflow. */
 public final class PhoneImportPojo {
+    public record PhoneImportDetail(PhoneImport header, List<PhoneDraft> content,
+            int page, int size, long totalElements, long totalPages) { }
     private PhoneImportPojo() { }
 
     /** WARNING rows are reported separately from both valid and invalid rows. */

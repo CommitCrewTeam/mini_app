@@ -50,6 +50,7 @@ public class PhoneImportValidationJob {
         return submitter.submit(validationJob, new JobParametersBuilder()
                 .addLong("importId", id)
                 .addString("mode", context.mode().name())
+                .addString("attempt", java.util.UUID.randomUUID().toString())
                 .toJobParameters(), () -> finishValidation(id, false)).getId();
     }
 
