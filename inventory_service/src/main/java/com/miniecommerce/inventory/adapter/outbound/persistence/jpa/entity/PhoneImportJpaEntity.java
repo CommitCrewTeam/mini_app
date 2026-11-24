@@ -34,4 +34,7 @@ public class PhoneImportJpaEntity {
 
     @Column(name = "updated_at", nullable = false)
     public OffsetDateTime updatedAt;
+
+    @Column(name = "upload_file_name")
+    public String uploadFileName;
 }

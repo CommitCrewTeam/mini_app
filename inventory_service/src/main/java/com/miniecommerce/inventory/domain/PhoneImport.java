@@ -17,6 +17,7 @@ public class PhoneImport {
     private String error;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private String uploadFileName;
 
     public PhoneImport() {
     }
@@ -32,9 +33,11 @@ public class PhoneImport {
         this.updatedAt = updatedAt;
     }
 
-    public static PhoneImport uploading(ImportMode mode) {
+    public static PhoneImport uploading(ImportMode mode, String uploadFileName) {
         var now = OffsetDateTime.now();
-        return new PhoneImport(null, PhoneImportStatus.UPLOAD_IN_PROGRESS, mode, null, null, now, now);
+        PhoneImport phoneImport = new PhoneImport(null, PhoneImportStatus.UPLOAD_IN_PROGRESS, mode, null, null, now, now);
+        phoneImport.setUploadFileName(uploadFileName);
+        return phoneImport;
     }
 
     public static PhoneImportStatusTransition validationStartTransition() {
@@ -151,5 +154,13 @@ public class PhoneImport {
 
     public void setUpdatedAt(OffsetDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public String getUploadFileName() {
+        return uploadFileName;
+    }
+
+    public void setUploadFileName(String uploadFileName) {
+        this.uploadFileName = uploadFileName;
     }
 }

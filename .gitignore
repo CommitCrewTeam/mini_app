@@ -14,3 +14,7 @@ out/
 .env
 data/phone-imports/
 **/data/phone-imports/
+
+# Local review copies
+toreviews/
+toreviews.7z

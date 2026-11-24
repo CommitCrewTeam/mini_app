@@ -130,7 +130,7 @@ public class PhoneImportApplicationService implements PhoneImportUseCase {
 
     @Override
     public Mono<Long> importFile(ImportPhonesCommand command) {
-        return phoneImportRepository.save(PhoneImport.uploading(command.mode()))
+        return phoneImportRepository.save(PhoneImport.uploading(command.mode(), command.originalFilename()))
                 .flatMap(saved -> Mono.just(saved.getId())
                         // Emit the ID and completion before handing off job submission.
                         .doAfterTerminate(() -> blockingTasks.runInBackground(

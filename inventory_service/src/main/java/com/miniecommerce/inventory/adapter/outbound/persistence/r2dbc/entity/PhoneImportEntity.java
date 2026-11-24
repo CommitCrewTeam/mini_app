@@ -26,4 +26,5 @@ public class PhoneImportEntity {
     private String error;
     private OffsetDateTime createdAt;
     private OffsetDateTime updatedAt;
+    private String uploadFileName;
 }
