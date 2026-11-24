@@ -37,6 +37,9 @@ databaseChangeLog:
                   name: error
                   type: TEXT
               - column:
+                  name: upload_file_name
+                  type: VARCHAR(255)
+              - column:
                   name: created_at
                   type: TIMESTAMP WITH TIME ZONE
                   constraints:

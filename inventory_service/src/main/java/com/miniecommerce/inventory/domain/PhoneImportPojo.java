@@ -20,7 +20,8 @@ public final class PhoneImportPojo {
             @JsonProperty("valid_count") long validCount,
             @JsonProperty("warning_count") long warningCount,
             ImportMode mode,
-            PhoneImportStatus status) { }
+            PhoneImportStatus status,
+            @JsonProperty("upload_file_name") String uploadFileName) { }
 
     public record PhoneDraftApprovalSummary(long totalDrafts, long validDrafts, long warningDrafts,
             long invalidDrafts) { }
@@ -43,6 +44,7 @@ public final class PhoneImportPojo {
     /** One row of the phone import list. */
     public record PhoneImportListItem(
             Long id,
+            String uploadFileName,
             PhoneImportStatus status,
             ImportMode mode,
             Long version,
