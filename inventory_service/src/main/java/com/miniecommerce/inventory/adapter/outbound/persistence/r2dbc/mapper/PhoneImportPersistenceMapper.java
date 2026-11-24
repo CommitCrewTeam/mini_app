@@ -17,7 +17,5 @@ public interface PhoneImportPersistenceMapper {
 
     PhoneImportEntity toEntity(PhoneImport phoneImport);
 
-    @Mapping(target = "importId", source = "importId")
-    PhoneDraftEntity toEntity(Long importId, PhoneDraft row);
 
 }
