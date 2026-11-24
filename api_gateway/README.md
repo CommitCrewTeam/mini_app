@@ -1,13 +1,12 @@
 # API Gateway
 
-Start config_service first, then api_gateway in separate terminals from the repository root:
+Start api_gateway from the repository root; config_service is not required:
 
 ```powershell
-.\gradlew.bat :config_service:bootRun
 .\gradlew.bat :api_gateway:bootRun
 ```
 
-Gateway listens on `http://localhost:6002`. Config Server supplies its port and routes from `config_service/config-repo/api_gateway.yml`. The local application.yml only contains its application name and Config Server connection. Restart gateway after changing the remote configuration.
+Gateway listens on `http://localhost:6002`. Its port and routes are configured locally in `api_gateway/src/main/resources/application.yml`, copied from `config_service/config-repo/api_gateway.yml`. Restart gateway after changing the local configuration.
 
 | Service / application name | Port |
 | --- | --- |
@@ -43,13 +42,6 @@ Routes do not create endpoints: services without controllers still return 404. T
 
 Existing authentication behavior is unchanged; the public-path list now uses the service-prefixed URLs.
 
-The gateway source on origin/main references TokenVerificationPort but does not include
-that interface or an implementation. The interface is now included with the existing
-`Mono<TokenVerification> verify(String accessToken)` contract. A production adapter bean
-is still missing, so passing unit tests does not mean the application can start.
-TokenAuthenticationService and its constructor have not been changed. This routing
-update does not add a JWT verifier or change Redis/security configuration.
-
-Override service destinations with AUTH_SERVICE_URL, INVENTORY_SERVICE_URL, etc. Config Server connection uses CONFIG_URL (default `http://localhost:6001`), CONFIG_USER and CONFIG_PASSWORD.
+Override service destinations with AUTH_SERVICE_URL, INVENTORY_SERVICE_URL, etc. AUTH_SERVICE_URL also configures the token verification client (default `http://localhost:6003`).
 
 FE uses relative service-prefixed paths. Vite dev/preview forwards all these paths to GATEWAY_URL (default `http://localhost:6002`). Production hosting must reverse proxy the same service-prefixed paths to gateway and serve the SPA for non-API paths.

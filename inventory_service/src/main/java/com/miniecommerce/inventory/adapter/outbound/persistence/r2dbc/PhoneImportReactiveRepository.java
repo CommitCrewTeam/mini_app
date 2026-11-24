@@ -30,7 +30,7 @@ public interface PhoneImportReactiveRepository
     @Modifying
     @Query("""
             UPDATE phone_import
-            SET status = :nextStatus, version = version + 1, updated_at = CURRENT_TIMESTAMP
+            SET status = :nextStatus, error = NULL, version = version + 1, updated_at = CURRENT_TIMESTAMP
             WHERE id = :id AND status IN (:statuses)
             """)
     Mono<Integer> writeStatusIfStatusIn(@Param("id") Long id,

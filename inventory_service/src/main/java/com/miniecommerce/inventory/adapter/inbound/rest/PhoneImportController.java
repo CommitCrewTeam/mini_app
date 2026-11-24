@@ -1,5 +1,7 @@
 package com.miniecommerce.inventory.adapter.inbound.rest;
 
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportDetail;
+
 import com.miniecommerce.common.response.ApiResponse;
 import com.miniecommerce.inventory.adapter.inbound.rest.dto.PhoneImportFilterRequest;
 import com.miniecommerce.inventory.adapter.inbound.rest.dto.ApprovePhoneImportRequest;
@@ -54,6 +56,15 @@ public class PhoneImportController {
     public Mono<ApiResponse<PhoneImportStat>> getStat(@PathVariable Long importId) {
         return phoneImportUseCase.getStat(importId)
                 .map(stat -> ApiResponse.success(stat, "Phone import stat retrieved"));
+    }
+
+    @GetMapping("/{importId}")
+    public Mono<ApiResponse<PhoneImportDetail>> getDetail(
+            @PathVariable Long importId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        return phoneImportUseCase.getDetail(importId, page, size)
+                .map(detail -> ApiResponse.success(detail, "Phone import details retrieved"));
     }
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

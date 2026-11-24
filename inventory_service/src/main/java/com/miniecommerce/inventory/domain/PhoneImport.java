@@ -39,7 +39,12 @@ public class PhoneImport {
 
     public static PhoneImportStatusTransition validationStartTransition() {
         return new PhoneImportStatusTransition(
-                List.of(PhoneImportStatus.VALIDATE_SUCCEEDED), PhoneImportStatus.VALIDATE_IN_PROGRESS);
+                validatableStatuses(), PhoneImportStatus.VALIDATE_IN_PROGRESS);
+    }
+
+    public static List<PhoneImportStatus> validatableStatuses() {
+        return List.of(PhoneImportStatus.VALIDATE_SUCCEEDED,
+                PhoneImportStatus.VALIDATE_FAILED, PhoneImportStatus.APPROVE_VALIDATION_FAILED);
     }
 
     public static PhoneImportStatusTransition approvalStartTransition() {
@@ -82,7 +87,8 @@ public class PhoneImport {
 
     /** After validation, an import needs at least one draft and no INVALID drafts. */
     public static boolean isValidationValid(PhoneDraftApprovalSummary summary) {
-        return summary.totalDrafts() > 0 && summary.invalidDrafts() == 0;
+        return summary.totalDrafts() > 0 && summary.invalidDrafts() == 0
+                && summary.totalDrafts() == summary.validDrafts() + summary.warningDrafts();
     }
 
     /** WARNING drafts need explicit user acceptance before they are applied. */

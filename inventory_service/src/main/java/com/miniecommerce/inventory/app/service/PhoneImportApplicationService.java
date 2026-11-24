@@ -1,5 +1,9 @@
 package com.miniecommerce.inventory.app.service;
 
+import com.miniecommerce.inventory.app.port.outbound.phone.PhoneDraftRepositoryPort;
+
+import com.miniecommerce.inventory.domain.PhoneImportPojo.PhoneImportDetail;
+
 import com.miniecommerce.inventory.app.command.ApprovePhoneImportCommand;
 import com.miniecommerce.inventory.app.command.ImportPhonesCommand;
 import com.miniecommerce.inventory.app.command.ListPhoneImportsCommand;
@@ -35,6 +39,7 @@ public class PhoneImportApplicationService implements PhoneImportUseCase {
     private final PhoneImportListMapper phoneImportListMapper;
     private final FileUtil fileUtil;
     private final BlockingTasks blockingTasks;
+    private final PhoneDraftRepositoryPort drafts;
 
     public PhoneImportApplicationService(SpringBatchPhoneImportJob importJob,
             ApproveImportJob approveJob,
@@ -42,7 +47,9 @@ public class PhoneImportApplicationService implements PhoneImportUseCase {
             PhoneImportRepositoryPort phoneImportRepository,
             PhoneImportListMapper phoneImportListMapper,
             FileUtil fileUtil,
-            BlockingTasks blockingTasks) {
+            BlockingTasks blockingTasks,
+            PhoneDraftRepositoryPort drafts) {
+        this.drafts = drafts;
         this.importJob = importJob;
         this.approveJob = approveJob;
         this.validationJob = validationJob;
@@ -50,6 +57,19 @@ public class PhoneImportApplicationService implements PhoneImportUseCase {
         this.phoneImportListMapper = phoneImportListMapper;
         this.fileUtil = fileUtil;
         this.blockingTasks = blockingTasks;
+    }
+
+    @Override
+    public Mono<PhoneImportDetail> getDetail(Long importId, int page, int size) {
+        if (importId == null || importId <= 0 || page < 0 || size < 1 || size > 100) {
+            return Mono.error(new AppException(ErrorCode.BAD_REQUEST, "Require positive importId, page >= 0 and size between 1 and 100"));
+        }
+        return phoneImportRepository.findById(importId)
+                .switchIfEmpty(Mono.error(new AppException(ErrorCode.NOT_FOUND, "Phone import not found")))
+                .flatMap(header -> drafts.findPage(importId, page, size).collectList()
+                        .zipWith(drafts.countByImportId(importId))
+                        .map(result -> new PhoneImportDetail(
+                                header, result.getT1(), page, size, result.getT2(), (result.getT2() + size - 1) / size)));
     }
 
     @Override
