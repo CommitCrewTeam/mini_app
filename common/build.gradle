@@ -29,6 +29,10 @@ dependencies {
     // AOP - @Aspect, @Around (dùng cho annotation-based distributed lock)
     api 'org.springframework.boot:spring-boot-starter-aop'
 
+    // Sources in this module use Lombok annotations (see aspect, redis).
+    compileOnly 'org.projectlombok:lombok:1.18.34'
+    annotationProcessor 'org.projectlombok:lombok:1.18.34'
+
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.5'
 }
 

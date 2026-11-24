@@ -105,8 +105,16 @@ public class ApproveImportJob {
                 BlockingPhoneDraftRepositoryPort phoneDraftRepository,
                 BlockingPhoneRepositoryPort phoneRepository) {
             ImportMode importMode = ImportMode.valueOf(mode);
-            return chunk -> applyBlockingChunk(phoneDraftRepository, phoneRepository, importId, importMode, warningSkip,
-                    chunk.getItems());
+            // ItemWriter is the chunk strategy; select once for this step execution.
+            return switch (importMode) {
+                case RESTOCK -> chunk -> {
+                    if (chunk.isEmpty()) return;
+                    phoneDraftRepository.applyRestock(importId,
+                            chunk.getItems().stream().map(PhoneDraft::getId).toList());
+                };
+                case CREATE, UPDATE -> chunk -> applyBlockingChunk(phoneDraftRepository, phoneRepository,
+                        importId, importMode, warningSkip, chunk.getItems());
+            };
         }
 
         @Bean(PhoneImportUtils.APPROVE_STEP)
