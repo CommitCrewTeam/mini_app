@@ -146,15 +146,12 @@ Trọng tài là DB, không dùng lock trong memory, nên chạy đúng với nh
 
 | Chỗ | Rủi ro | Cách chặn |
 |---|---|---|
-| Upload | Hai import chạy cùng lúc | Partial unique index, import thứ hai nhận 409 |
+| Upload | Nhiều import chạy cùng lúc | Cho phép nhiều import cùng tồn tại (kể cả `READY`); mỗi job chạy theo `importId` riêng |
 | Approve | Double-click, hai admin cùng bấm, bấm trên preview cũ | CAS kèm version của import |
 | Ghi vào phone | Có người tạo hoặc sửa key giữa verify và apply | UNIQUE (`key`) cho CREATE, WHERE `version = ...` cho UPDATE |
 
 ```sql
-CREATE UNIQUE INDEX uq_one_active_import ON phone_import ((1))
-  WHERE status NOT IN ('DONE', 'FAILED');
-
-UPDATE phone_import SET status = 'APPLYING', version = version + 1
+UPDATE phone_import SET status = 'APPROVING', version = version + 1
 WHERE id = :id AND status = 'READY' AND version = :clientVersion;
 -- 0 dòng thì trả 409
 ```
@@ -164,7 +161,7 @@ Khi chạy nhiều pod:
 - File upload lưu ở chỗ dùng chung (S3/MinIO hoặc volume chung), không để trên disk local của pod.
 - Mọi chuyển state đi qua một hàm dùng `UPDATE ... WHERE status = :from`. Trả 0 dòng nghĩa là pod khác đã xử lý.
 - Job nền viết theo kiểu CAS để nhiều pod cùng chạy cũng vô hại. Dùng `now()` của DB để tính timeout.
-- Với Spring Batch: `importId` là UUID ngẫu nhiên mỗi lần launch nên JobRepository không chặn trùng. Việc chặn do `phone_import` đảm nhiệm.
+- Với Spring Batch: `importId` là UUID ngẫu nhiên mỗi lần launch nên JobRepository không chặn trùng. Mỗi import là một row `phone_import` riêng, không bị giới hạn bởi import khác.
 
 ## 7. API
 

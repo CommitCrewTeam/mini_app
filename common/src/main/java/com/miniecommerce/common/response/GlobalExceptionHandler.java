@@ -10,6 +10,7 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.server.MissingRequestValueException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -42,6 +43,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .badRequest()
                 .body(new ApiResponse<>(false, String.valueOf(ErrorCode.BAD_REQUEST.getStatus().value()), "Validation failed", fieldErrors));
+    }
+
+    @ExceptionHandler(MissingRequestValueException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMissingRequestValue(MissingRequestValueException ex) {
+        log.warn("Missing request value: " + ex.getMessage());
+        return ResponseEntity
+                .status(ErrorCode.BAD_REQUEST.getStatus())
+                .body(ApiResponse.error(ErrorCode.BAD_REQUEST.name(), ex.getMessage()));
     }
 
     @ExceptionHandler(AccessDeniedException.class)

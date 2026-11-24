@@ -15,7 +15,7 @@ These routes reflect `PhoneController` and `PhoneImportController`.
 | PhoneController | POST | /api/v1/phones | 200 |
 | PhoneImportController | POST | /api/v1/phones/imports | 202 |
 | PhoneImportController | POST | /api/v1/phones/imports/{importId}/validate | 202 |
-| PhoneImportController | POST | /api/v1/phones/imports/{importId}/approve | 202 |
+| PhoneImportController | POST | /api/v1/phones/imports/{importId}/approve (optional JSON: warningSkip) | 202 |
 
 Command blocks use Bash syntax and can be run with the Markdown Run action configured for Bash (for example, Git Bash or WSL). Run file-upload examples from the repository root.
 
@@ -150,6 +150,6 @@ It covers upload, validate and approve endpoints, numeric import/job execution r
 
 PostgreSQL must be available and Liquibase migrations must complete before the API can accept requests. The import job also needs Spring Batch metadata tables and a writable upload directory (default `./data/phone-imports`, configurable through `PHONE_IMPORT_DIRECTORY`).
 
-Import IDs and draft IDs use database sequences (BIGINT/Java Long). Draft import_id references the numeric import ID. GET /api/v1/phones/imports/{importId}/stat uses the same numeric ID.
+Import IDs and draft IDs use database sequences (BIGINT/Java Long). Draft import_id references the numeric import ID. GET /api/v1/phones/imports/{importId}/stat uses the same numeric ID and returns warning_count. Upload ingests and validates drafts; its final state is VALIDATE_SUCCEEDED or the corresponding failure state. Revalidation marks a draft WARNING when its matched Phone.version changed since the prior validation and keeps the original version baseline. For approval, warningSkip=true accepts and applies those drafts to the latest Phone snapshot; warningSkip=false (or no body) stops before applying them and returns the import to VALIDATE_SUCCEEDED. INVALID drafts still block approval.
 
 Fresh databases create the sequence-backed IDs directly in the table creation changelogs; no separate data migration is required.
