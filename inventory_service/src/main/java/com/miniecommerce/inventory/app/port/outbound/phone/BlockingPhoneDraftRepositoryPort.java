@@ -11,4 +11,6 @@ public interface BlockingPhoneDraftRepositoryPort {
     Set<String> findDuplicateKeys(Long importId, List<String> keys);
     PhoneDraftApprovalSummary summarizeForApproval(Long importId);
     void saveAll(Long importId, List<? extends PhoneDraft> drafts);
+    /** Atomically applies persisted RESTOCK drafts and their stock increments in the chunk transaction. */
+    void applyRestock(Long importId, List<Long> draftIds);
 }

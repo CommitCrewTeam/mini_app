@@ -29,6 +29,7 @@ public class PhoneDraft {
      * Phone.version observed when validation last matched this draft against the phone table.
      * It is a point-in-time baseline, not a live value: approval re-reads the Phone snapshot and
      * rejects the change if the phone has moved past this version in the meantime.
+     * Only UPDATE drafts carry it; it stays null for CREATE and RESTOCK.
      */
     private Long matchedVersion;
 
@@ -69,7 +70,7 @@ public class PhoneDraft {
         }
         errorMessage = null;
         boolean warning = false;
-        if (!mode.requiresExistingPhone()) {
+        if (!mode.tracksPhoneVersion()) {
             matchedVersion = null;
         }
         if (duplicate) {
@@ -82,14 +83,12 @@ public class PhoneDraft {
             errorMessage = "Key already exists in phone";
         } else if (mode != ImportMode.CREATE && match == null) {
             errorMessage = "Key does not exist in phone";
-        } else if (match != null) {
-            if (mode.requiresExistingPhone()) {
-                if (matchedVersion == null) {
-                    matchedVersion = match.version();
-                } else if (!matchedVersion.equals(match.version())) {
-                    errorMessage = "Phone changed since previous validation; review before approval";
-                    warning = true;
-                }
+        } else if (match != null && mode.tracksPhoneVersion()) {
+            if (matchedVersion == null) {
+                matchedVersion = match.version();
+            } else if (!matchedVersion.equals(match.version())) {
+                errorMessage = "Phone changed since previous validation; review before approval";
+                warning = true;
             }
         }
         if (warning) {

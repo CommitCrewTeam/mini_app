@@ -10,6 +10,10 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import com.miniecommerce.common.exception.AppException;
+import com.miniecommerce.common.exception.ErrorCode;
 
 @Repository
 public class BlockingPhoneDraftRepositoryAdapter implements BlockingPhoneDraftRepositoryPort {
@@ -62,5 +66,16 @@ public class BlockingPhoneDraftRepositoryAdapter implements BlockingPhoneDraftRe
     public void saveAll(Long importId, List<? extends PhoneDraft> drafts) {
         if (drafts.isEmpty()) return;
         repository.saveAll(drafts.stream().map(draft -> mapper.toEntity(importId, draft)).toList());
+    }
+
+    @Override
+    @Transactional(transactionManager = "jpaTransactionManager", propagation = Propagation.MANDATORY)
+    public void applyRestock(Long importId, List<Long> draftIds) {
+        if (draftIds.isEmpty()) return;
+        // One phone per draft is required by import validation. This also rejects missing
+        // phones, duplicate keys and ineligible drafts, rolling back BOTH CTE updates.
+        if (repository.applyRestock(importId, draftIds) != draftIds.size()) {
+            throw new AppException(ErrorCode.CONFLICT, "Restock chunk could not apply every draft");
+        }
     }
 }

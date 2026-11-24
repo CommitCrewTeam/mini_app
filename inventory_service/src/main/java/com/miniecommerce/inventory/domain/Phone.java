@@ -42,7 +42,7 @@ public class Phone {
     /**
      * Builds the Phone row to persist for one approved draft.
      *
-     * <p>For UPDATE/RESTOCK {@code snapshot} is the Phone read inside the approval transaction,
+     * <p>For UPDATE {@code snapshot} is the Phone read inside the approval transaction,
      * and the draft's {@code matchedVersion} (captured during validation) must still equal the
      * snapshot's {@link #version}, unless the draft is WARNING and the user explicitly accepted
      * warnings. The change is applied to the snapshot in place so optimistic locking still
@@ -52,6 +52,9 @@ public class Phone {
      */
     public static Phone prepareImportChange(
             ImportMode mode, PhoneDraft draft, Phone snapshot, boolean warningSkip) {
+        if (mode == ImportMode.RESTOCK) {
+            throw new IllegalArgumentException("RESTOCK must use an atomic stock increment");
+        }
         if (!mode.requiresExistingPhone()) {
             return fromImport(draft.getKey(), draft.getDetail(), draft.getQuantity());
         }
@@ -67,7 +70,7 @@ public class Phone {
         // Keeping the same object also keeps the version that was read for the save to check.
         switch (mode) {
             case UPDATE -> snapshot.updateFromImport(draft.getDetail());
-            case RESTOCK -> snapshot.restock(draft.getQuantity());
+            case RESTOCK -> throw new IllegalStateException("RESTOCK uses an atomic stock increment");
             case CREATE -> throw new IllegalStateException("CREATE was handled before loading a snapshot");
         }
         return snapshot;
