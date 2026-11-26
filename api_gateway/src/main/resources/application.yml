@@ -23,6 +23,10 @@ spring:
           uri: ${INVENTORY_SERVICE_URL:http://localhost:6004}
           predicates:
             - Path=/inventory_service/api/v1/**
+        - id: flash_sale_service
+          uri: ${FLASH_SALE_SERVICE_URL:http://localhost:6014}
+          predicates:
+            - Path=/flash_sale_service/api/v1/**
         - id: order_service
           uri: ${ORDER_SERVICE_URL:http://localhost:6005}
           predicates:

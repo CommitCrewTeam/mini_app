@@ -1,0 +1,22 @@
+server:
+  port: ${SERVER_PORT:6014}
+
+spring:
+  application:
+    name: flash_sale_service
+  main:
+    web-application-type: reactive
+  r2dbc:
+    url: ${INVENTORY_R2DBC_URL:r2dbc:postgresql://localhost:5432/inventory_service}
+    username: ${INVENTORY_DB_USER:ecommerce_user}
+    password: ${INVENTORY_DB_PASSWORD:ecommerce_password}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info

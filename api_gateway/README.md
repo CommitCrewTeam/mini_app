@@ -23,6 +23,7 @@ Gateway listens on `http://localhost:6002`. Its port and routes are configured l
 | pricing_service | 6011 |
 | notification_service | 6012 |
 | analytics_service | 6013 |
+| flash_sale_service | 6014 |
 
 seed_service is a command-line job (`web-application-type: none`), so it has no HTTP port or gateway route. Infrastructure ports (Postgres, Redis, Kafka) stay unchanged.
 
